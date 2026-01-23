@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/william-nobara/igrep/internal/editor"
+	"github.com/william-nobara/igrep/internal/highlight"
 	"github.com/william-nobara/igrep/internal/search"
 )
 
@@ -40,6 +41,8 @@ type Model struct {
 	searchCtx       context.Context
 	searchCancel    context.CancelFunc
 	caseSensitivity search.CaseSensitivity
+
+	highlighter *highlight.Highlighter
 
 	debounceToken int
 	lastPattern   string
@@ -115,6 +118,7 @@ func NewModel() Model {
 		results:         make([]search.Match, 0),
 		lastPath:        ".",
 		caseSensitivity: search.CaseSmart,
+		highlighter:     highlight.New(true, "monokai"),
 		width:           80, // Default width for help positioning
 		height:          24, // Default height for help positioning
 	}
@@ -166,6 +170,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, m.executeSearch(pattern, path))
 			}
 			return m, tea.Batch(cmds...)
+
+		case "ctrl+h":
+			m.highlighter.SetEnabled(!m.highlighter.IsEnabled())
+			m.updatePreviewView()
+			return m, nil
 
 		case "up", "ctrl+p":
 			if m.selectedIndex > 0 {
@@ -534,15 +543,22 @@ func (m *Model) updatePreviewView() {
 	for i, line := range m.previewLines {
 		lineNum := m.previewStart + i
 
+		var processedLine string
+		if m.highlighter.IsEnabled() && m.highlighter.IsSupported(m.previewPath) {
+			processedLine = m.highlighter.Highlight(line, m.previewPath)
+		} else {
+			processedLine = line
+		}
+
 		if lineNum == m.previewMatch {
 			styledLineNum := matchLineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
 
-			highlightedLine := highlightMatches(line, m.previewSubmatches, matchTextHighlightStyle)
+			highlightedLine := highlightMatches(processedLine, m.previewSubmatches, matchTextHighlightStyle)
 
 			sb.WriteString(styledLineNum + " " + highlightedLine)
 		} else {
 			normalLineNum := normalLineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
-			sb.WriteString(normalLineNum + " " + line)
+			sb.WriteString(normalLineNum + " " + processedLine)
 		}
 		sb.WriteString("\n")
 	}
@@ -565,6 +581,13 @@ func (m *Model) getCaseSensitivityName() string {
 	default:
 		return "Smart"
 	}
+}
+
+func (m *Model) getSyntaxHighlightingStatus() string {
+	if m.highlighter.IsEnabled() {
+		return "On"
+	}
+	return "Off"
 }
 
 func (m Model) View() string {
@@ -630,10 +653,10 @@ func (m Model) View() string {
 	var helpText string
 	if len(m.results) > 0 {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+C twice (quit)")
+			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit)")
 	} else {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+C twice (quit)")
+			"Keys: Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit)")
 	}
 	if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(
