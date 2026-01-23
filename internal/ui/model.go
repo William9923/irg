@@ -189,9 +189,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		previewWidth := msg.Width - listWidth - 5
 
 		m.resultsView.Width = listWidth
-		m.resultsView.Height = msg.Height - 8
+		m.resultsView.Height = msg.Height - 5
 		m.previewView.Width = previewWidth
-		m.previewView.Height = msg.Height - 8
+		m.previewView.Height = msg.Height - 5
 
 		m.updateResultsView()
 		m.updatePreviewView()
@@ -412,10 +412,17 @@ func (m *Model) updatePreviewView() {
 }
 
 func (m Model) View() string {
-	titleStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("205")).
-		MarginBottom(1)
+	resultsStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Width(m.width / 3).
+		Height(m.height - 5)
+
+	previewStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Width(m.width - m.width/3 - 5).
+		Height(m.height - 5)
 
 	activeInputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -427,20 +434,14 @@ func (m Model) View() string {
 		BorderForeground(lipgloss.Color("240")).
 		Padding(0, 1)
 
-	resultsStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		Width(m.width / 3).
-		Height(m.height - 8)
-
-	previewStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("240")).
-		Width(m.width - m.width/3 - 5).
-		Height(m.height - 8)
-
 	statusStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241"))
+
+	mainContent := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		resultsStyle.Render(m.resultsView.View()),
+		previewStyle.Render(m.previewView.View()),
+	)
 
 	var patternBox, pathBox string
 	if m.focused == focusPattern {
@@ -450,8 +451,6 @@ func (m Model) View() string {
 		patternBox = inactiveInputStyle.Render(m.patternInput.View())
 		pathBox = activeInputStyle.Render(m.pathInput.View())
 	}
-
-	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, patternBox, " ", pathBox)
 
 	var status string
 	if m.searching {
@@ -464,25 +463,17 @@ func (m Model) View() string {
 			pathInfo = "current directory"
 		}
 		status = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(
-			fmt.Sprintf("%d matches in %s (%s) | Tab: switch input | ↑↓: navigate | Esc: quit",
+			fmt.Sprintf("%d matches in %s (%s)",
 				m.matchCount, pathInfo, m.searchTime.Round(time.Millisecond)))
 	} else if m.lastPattern != "" {
 		status = "No matches"
-	} else {
-		status = "Type a pattern to search | Tab: switch input | ↑↓: navigate | Esc: quit"
 	}
 
-	mainContent := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		resultsStyle.Render(m.resultsView.View()),
-		previewStyle.Render(m.previewView.View()),
-	)
+	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, patternBox, " ", pathBox, "  ", statusStyle.Render(status))
 
 	return lipgloss.JoinVertical(
 		lipgloss.Left,
-		titleStyle.Render("igrep - Interactive Grep"),
-		inputRow,
 		mainContent,
-		statusStyle.Render(status),
+		inputRow,
 	)
 }
