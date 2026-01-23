@@ -522,8 +522,8 @@ func (m *Model) updatePreviewView() {
 	normalLineNumStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Width(4)
 	separatorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
 
-	matchLineStyle := lipgloss.NewStyle().Background(lipgloss.Color("226")).Foreground(lipgloss.Color("0"))
 	matchLineNumStyle := lipgloss.NewStyle().Background(lipgloss.Color("226")).Foreground(lipgloss.Color("0")).Bold(true).Width(4)
+	matchTextHighlightStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
 
 	sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Bold(true).Render(m.previewPath))
 	sb.WriteString("\n")
@@ -535,7 +535,12 @@ func (m *Model) updatePreviewView() {
 
 		if lineNum == m.previewMatch {
 			styledLineNum := matchLineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
-			styledLine := matchLineStyle.Render(line)
+
+			highlightedLine := highlightMatches(line, m.previewSubmatches, matchTextHighlightStyle)
+
+			matchLineStyle := lipgloss.NewStyle().Background(lipgloss.Color("226")).Foreground(lipgloss.Color("0"))
+			styledLine := matchLineStyle.Render(highlightedLine)
+
 			sb.WriteString(styledLineNum + " " + styledLine)
 		} else {
 			normalLineNum := normalLineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
