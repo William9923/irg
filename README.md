@@ -2,8 +2,6 @@
 
 A terminal UI for interactive grep search with real-time results and live file preview. Inspired by ijq (interactive jq), igrep provides a responsive interface for searching through codebases using ripgrep's powerful search engine.
 
-![igrep demo](./demo.gif)
-
 ## Features
 
 - Real-time search results as you type
@@ -63,7 +61,7 @@ igrep
 - **Tab**: Switch between pattern input and path input
 - **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate through results
 - **PgUp/PgDn**: Jump 10 results at a time
-- **Esc** or **Ctrl+C**: Quit
+- **Ctrl+C**: Quit
 
 ### Basic Workflow
 
@@ -124,6 +122,17 @@ igrep is built on a clean separation of concerns:
 **Result Capping**: While ripgrep searches are limited to 1,000 matches per call, the UI caps results at 10,000 to maintain performance on large result sets.
 
 **Context Preview**: The preview pane loads file context asynchronously, showing 5 lines above and below the match to provide useful context without overwhelming the display.
+
+## Future Plans
+
+1. Open in $EDITOR - Press Enter to open file at matched line in user's editor
+2. Regex/literal toggle - Switch between regex and fixed-string mode
+3. Case sensitivity toggle - Toggle smart-case vs case-sensitive vs case-insensitive
+4. File type filters - Filter by extension using ripgrep's --type flag
+5. Match highlighting - Highlight the actual matched text within lines (submatch data is already parsed)
+6. Syntax highlighting - Highlight code in preview pane using chroma
+7. History persistence - Save search patterns to XDG data directory
+8. Add tests - No tests exist yet; could add tests for search package
 
 ## Dependencies
 
