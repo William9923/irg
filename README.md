@@ -56,12 +56,27 @@ Start igrep in your project directory:
 igrep
 ```
 
+### Command Line Options
+
+- `--case=MODE`: Set case sensitivity mode
+  - `smart` (default): Case-insensitive unless uppercase is used
+  - `sensitive`: Always case-sensitive
+  - `insensitive`: Always case-insensitive
+
+Example:
+```bash
+igrep --case=sensitive    # Force case-sensitive search
+igrep --case=insensitive  # Force case-insensitive search
+```
+
 ### Keybindings
 
 - **Tab**: Switch between pattern input and path input
 - **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate through results
 - **PgUp/PgDn**: Jump 10 results at a time
-- **Ctrl+C**: Quit
+- **Ctrl+T**: Toggle case sensitivity mode (Smart → Sensitive → Insensitive → Smart)
+- **Enter**: Open selected result in your default editor
+- **Ctrl+C**: Quit (press twice quickly)
 
 ### Basic Workflow
 
@@ -74,9 +89,13 @@ igrep
 
 ### Search Options
 
-igrep uses ripgrep's `--smart-case` flag by default:
-- **Lowercase patterns**: Case-insensitive search
-- **Uppercase patterns**: Case-sensitive search
+igrep supports three case sensitivity modes:
+
+- **Smart** (default): Case-insensitive search for lowercase patterns, case-sensitive for patterns with uppercase letters
+- **Sensitive**: Always case-sensitive search  
+- **Insensitive**: Always case-insensitive search
+
+You can set the initial mode with `--case=smart|sensitive|insensitive` or toggle between modes interactively with **Ctrl+T**.
 
 ## How It Works
 
@@ -125,9 +144,9 @@ igrep is built on a clean separation of concerns:
 
 ## Future Plans
 
-1. Open in $EDITOR - Press Enter to open file at matched line in user's editor
+1. Open in $EDITOR - Press Enter to open file at matched line in user's editor => DONE
 2. Regex/literal toggle - Switch between regex and fixed-string mode
-3. Case sensitivity toggle - Toggle smart-case vs case-sensitive vs case-insensitive
+3. Case sensitivity toggle - Toggle smart-case vs case-sensitive vs case-insensitive => DONE
 4. File type filters - Filter by extension using ripgrep's --type flag
 5. Match highlighting - Highlight the actual matched text within lines (submatch data is already parsed)
 6. Syntax highlighting - Highlight code in preview pane using chroma

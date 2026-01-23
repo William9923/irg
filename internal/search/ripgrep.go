@@ -8,6 +8,14 @@ import (
 	"os/exec"
 )
 
+type CaseSensitivity int
+
+const (
+	CaseSmart CaseSensitivity = iota
+	CaseSensitive
+	CaseInsensitive
+)
+
 type Match struct {
 	Path       string
 	LineNumber int
@@ -52,7 +60,7 @@ func NewSearcher() *Searcher {
 	return &Searcher{}
 }
 
-func (s *Searcher) Search(ctx context.Context, pattern, path string, results chan<- Match) error {
+func (s *Searcher) Search(ctx context.Context, pattern, path string, caseSensitivity CaseSensitivity, results chan<- Match) error {
 	if pattern == "" {
 		close(results)
 		return nil
@@ -62,10 +70,19 @@ func (s *Searcher) Search(ctx context.Context, pattern, path string, results cha
 		"--json",
 		"--line-number",
 		"--column",
-		"--smart-case",
 		"--max-count=1000",
 		"--",
 		pattern,
+	}
+
+	// Add case sensitivity flag based on mode
+	switch caseSensitivity {
+	case CaseSmart:
+		args = append(args[:4], append([]string{"--smart-case"}, args[4:]...)...)
+	case CaseSensitive:
+		args = append(args[:4], append([]string{"--case-sensitive"}, args[4:]...)...)
+	case CaseInsensitive:
+		args = append(args[:4], append([]string{"--ignore-case"}, args[4:]...)...)
 	}
 
 	if path != "" {

@@ -34,11 +34,12 @@ type Model struct {
 	previewView  viewport.Model
 	focused      focusedInput
 
-	searcher      *search.Searcher
-	results       []search.Match
-	selectedIndex int
-	searchCtx     context.Context
-	searchCancel  context.CancelFunc
+	searcher        *search.Searcher
+	results         []search.Match
+	selectedIndex   int
+	searchCtx       context.Context
+	searchCancel    context.CancelFunc
+	caseSensitivity search.CaseSensitivity
 
 	debounceToken int
 	lastPattern   string
@@ -103,16 +104,17 @@ func NewModel() Model {
 	previewVp := viewport.New(40, 20)
 
 	return Model{
-		patternInput: patternTi,
-		pathInput:    pathTi,
-		resultsView:  resultsVp,
-		previewView:  previewVp,
-		focused:      focusPattern,
-		searcher:     search.NewSearcher(),
-		results:      make([]search.Match, 0),
-		lastPath:     ".",
-		width:        80, // Default width for help positioning
-		height:       24, // Default height for help positioning
+		patternInput:    patternTi,
+		pathInput:       pathTi,
+		resultsView:     resultsVp,
+		previewView:     previewVp,
+		focused:         focusPattern,
+		searcher:        search.NewSearcher(),
+		results:         make([]search.Match, 0),
+		lastPath:        ".",
+		caseSensitivity: search.CaseSmart,
+		width:           80, // Default width for help positioning
+		height:          24, // Default height for help positioning
 	}
 }
 
@@ -146,6 +148,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.patternInput.Focus()
 			}
 			return m, nil
+
+		case "ctrl+t":
+			switch m.caseSensitivity {
+			case search.CaseSmart:
+				m.caseSensitivity = search.CaseSensitive
+			case search.CaseSensitive:
+				m.caseSensitivity = search.CaseInsensitive
+			case search.CaseInsensitive:
+				m.caseSensitivity = search.CaseSmart
+			}
+			pattern := m.patternInput.Value()
+			path := m.pathInput.Value()
+			if pattern != "" {
+				cmds = append(cmds, m.executeSearch(pattern, path))
+			}
+			return m, tea.Batch(cmds...)
 
 		case "up", "ctrl+p":
 			if m.selectedIndex > 0 {
@@ -358,7 +376,7 @@ func (m *Model) executeSearch(pattern, path string) tea.Cmd {
 	return func() tea.Msg {
 		results := make(chan search.Match, 100)
 
-		err := m.searcher.Search(m.searchCtx, pattern, path, results)
+		err := m.searcher.Search(m.searchCtx, pattern, path, m.caseSensitivity, results)
 		if err != nil {
 			return searchErrorMsg{err: err}
 		}
@@ -460,6 +478,23 @@ func (m *Model) updatePreviewView() {
 	m.previewView.SetContent(sb.String())
 }
 
+func (m *Model) SetCaseSensitivity(caseSensitivity search.CaseSensitivity) {
+	m.caseSensitivity = caseSensitivity
+}
+
+func (m *Model) getCaseSensitivityName() string {
+	switch m.caseSensitivity {
+	case search.CaseSmart:
+		return "Smart"
+	case search.CaseSensitive:
+		return "Sensitive"
+	case search.CaseInsensitive:
+		return "Insensitive"
+	default:
+		return "Smart"
+	}
+}
+
 func (m Model) View() string {
 	resultsStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -523,10 +558,10 @@ func (m Model) View() string {
 	var helpText string
 	if len(m.results) > 0 {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+C twice (quit)")
+			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+C twice (quit)")
 	} else {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: Tab (switch input) | Ctrl+C twice (quit)")
+			"Keys: Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+C twice (quit)")
 	}
 	if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(
