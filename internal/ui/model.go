@@ -553,7 +553,15 @@ func (m *Model) updatePreviewView() {
 		if lineNum == m.previewMatch {
 			styledLineNum := matchLineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
 
-			highlightedLine := highlightMatches(processedLine, m.previewSubmatches, matchTextHighlightStyle)
+			var highlightedLine string
+			if m.highlighter.IsEnabled() && m.highlighter.IsSupported(m.previewPath) {
+				// For syntax-highlighted lines, just use a subtle background for the entire line
+				// instead of trying to highlight specific matches within colored text
+				highlightedLine = lipgloss.NewStyle().Background(lipgloss.Color("236")).Render(processedLine)
+			} else {
+				// For plain text, use the existing match highlighting
+				highlightedLine = highlightMatches(processedLine, m.previewSubmatches, matchTextHighlightStyle)
+			}
 
 			sb.WriteString(styledLineNum + " " + highlightedLine)
 		} else {
