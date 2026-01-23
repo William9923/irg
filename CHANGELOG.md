@@ -7,28 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial release preparation
-- MIT License
-- Enhanced documentation
+### Planned
+- Regex/literal toggle - Switch between regex and fixed-string mode
+- File type filters - Filter by extension using ripgrep's --type flag
+- Match highlighting - Highlight the actual matched text within lines
+- Syntax highlighting - Highlight code in preview pane using chroma
+- History persistence - Save search patterns to XDG data directory
+- Add comprehensive test suite
 
-## [1.0.0] - TBD
+## [0.0.1] - TBD
 
 ### Added
-- Interactive grep TUI with real-time search results
-- Split-pane interface: results list and file preview
-- Ripgrep integration with JSON output parsing
-- Debounced input (200ms) for responsive typing
-- Context preview showing 5 lines above and below matches
-- Smart-case search support
-- Case sensitivity toggle (Smart → Sensitive → Insensitive)
+- Initial alpha release of igrep - Interactive Grep TUI
+- Real-time search results as you type with ripgrep integration
+- Split-pane interface: results list (left) and file preview (right)
+- Debounced input (200ms) for responsive typing experience
+- Context preview showing 5 lines above and below each match
+- Smart-case search support (case-insensitive unless uppercase is used)
+- Case sensitivity toggle (Smart → Sensitive → Insensitive) via Ctrl+T
 - Path scoping via dedicated input field
-- Streaming results with batching for smooth UI
+- Streaming results with batching for smooth UI updates
 - Results capped at 10,000 for performance
-- Editor integration (open files at matched lines)
-- Built with Charm's Bubble Tea framework
+- Editor integration - press Enter to open files at matched lines
+- Built with Charm's Bubble Tea framework for elegant TUI
 
-### Key Features
+### Key Bindings
 - **Tab**: Switch between pattern and path input
 - **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate results
 - **PgUp/PgDn**: Jump 10 results at a time
@@ -36,11 +39,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Enter**: Open selected result in default editor
 - **Ctrl+C**: Quit
 
-### Technical Details
-- Go 1.23.4+ requirement
-- Ripgrep dependency for fast text search
-- Clean separation of concerns: search backend and TUI frontend
-- Comprehensive error handling and graceful degradation
+### Requirements
+- Go 1.23.4+ (for building from source)
+- ripgrep (rg) must be installed and available in PATH
 
-[Unreleased]: https://github.com/william-nobara/igrep/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/william-nobara/igrep/releases/tag/v1.0.0
+### Known Limitations
+- No tests yet (alpha release)
+- Limited error handling for edge cases
+- No configuration file support
+- No match highlighting within lines (submatch data parsed but not displayed)
+
+[Unreleased]: https://github.com/william-nobara/igrep/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/william-nobara/igrep/releases/tag/v0.0.1

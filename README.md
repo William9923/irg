@@ -3,8 +3,11 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/william-nobara/igrep)](https://goreportcard.com/report/github.com/william-nobara/igrep)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/william-nobara/igrep)](https://golang.org/dl/)
+[![Release](https://img.shields.io/github/v/release/william-nobara/igrep?include_prereleases)](https://github.com/william-nobara/igrep/releases)
 
 A terminal UI for interactive grep search with real-time results and live file preview. Inspired by ijq (interactive jq), igrep provides a responsive interface for searching through codebases using ripgrep's powerful search engine.
+
+> **⚠️ Alpha Release**: igrep is currently in alpha (v0.0.x). While functional, expect some rough edges and missing features. Feedback and contributions are welcome!
 
 ## 🎬 Demo
 
@@ -95,7 +98,11 @@ Before installing igrep, ensure you have:
 ### Method 1: Via go install (Recommended)
 
 ```bash
+# Install latest release
 go install github.com/william-nobara/igrep@latest
+
+# Or install specific version
+go install github.com/william-nobara/igrep@v0.0.1
 ```
 
 Ensure your Go bin directory is in your PATH:
@@ -278,16 +285,27 @@ igrep is built on a clean separation of concerns:
 
 **Context Preview**: The preview pane loads file context asynchronously, showing 5 lines above and below the match to provide useful context without overwhelming the display.
 
-## Future Plans
+## 🚀 Roadmap
 
-1. Open in $EDITOR - Press Enter to open file at matched line in user's editor => DONE
-2. Regex/literal toggle - Switch between regex and fixed-string mode
-3. Case sensitivity toggle - Toggle smart-case vs case-sensitive vs case-insensitive => DONE
-4. File type filters - Filter by extension using ripgrep's --type flag
-5. Match highlighting - Highlight the actual matched text within lines (submatch data is already parsed)
-6. Syntax highlighting - Highlight code in preview pane using chroma
-7. History persistence - Save search patterns to XDG data directory
-8. Add tests - No tests exist yet; could add tests for search package
+### v0.1.0 - Enhanced Search
+- [ ] Regex/literal mode toggle
+- [ ] File type filtering (--type flag)
+- [ ] Match highlighting within lines
+- [ ] Improved error handling
+
+### v0.2.0 - User Experience  
+- [ ] Configuration file support
+- [ ] Search history persistence
+- [ ] Syntax highlighting in preview
+- [ ] Custom key bindings
+
+### v1.0.0 - Stable Release
+- [ ] Comprehensive test suite
+- [ ] Performance optimizations
+- [ ] Plugin system
+- [ ] Advanced filtering options
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
 ## Dependencies
 
