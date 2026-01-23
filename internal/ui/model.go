@@ -56,7 +56,6 @@ type Model struct {
 	previewStart int
 	previewMatch int
 
-	showHelp      bool
 	ctrlCPressed  bool
 	lastCtrlCTime time.Time
 }
@@ -121,15 +120,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if m.showHelp {
-			switch msg.String() {
-			case "?", "esc":
-				m.showHelp = false
-				return m, nil
-			}
-			return m, nil
-		}
-
 		switch msg.String() {
 		case "ctrl+c":
 			now := time.Now()
@@ -138,10 +128,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.ctrlCPressed = true
 			m.lastCtrlCTime = now
-			return m, nil
-
-		case "?":
-			m.showHelp = !m.showHelp
 			return m, nil
 
 		case "tab":
@@ -502,17 +488,12 @@ func (m Model) View() string {
 	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, patternBox, " ", pathBox, "  ", statusStyle.Render(status))
 
 	var helpText string
-	if m.showHelp {
-		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Tab (switch input) | ? (toggle help) | Ctrl+C twice (quit)")
-	} else if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
+	helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		"Keys: ↑/↓ or Ctrl+P/N (navigate) | Tab (switch input) | Ctrl+C twice (quit)")
+	if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(
-			"Press Ctrl+C again to quit, or ? for help")
-	} else {
-		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Press ? for help")
+			"Press Ctrl+C again to quit")
 	}
-
 	var viewComponents []string
 	viewComponents = append(viewComponents, mainContent, inputRow)
 	if helpText != "" {
