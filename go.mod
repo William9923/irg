@@ -1,4 +1,4 @@
-module github.com/william-nobara/igrep
+module github.com/William9923/igrep
 
 go 1.23.4
 

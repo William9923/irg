@@ -7,9 +7,9 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/William9923/igrep/internal/search"
+	"github.com/William9923/igrep/internal/ui"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/william-nobara/igrep/internal/search"
-	"github.com/william-nobara/igrep/internal/ui"
 )
 
 func main() {

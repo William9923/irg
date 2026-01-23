@@ -1,9 +1,9 @@
 # igrep - Interactive Grep
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/william-nobara/igrep)](https://goreportcard.com/report/github.com/william-nobara/igrep)
+[![Go Report Card](https://goreportcard.com/badge/github.com/William9923/igrep)](https://goreportcard.com/report/github.com/William9923/igrep)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/william-nobara/igrep)](https://golang.org/dl/)
-[![Release](https://img.shields.io/github/v/release/william-nobara/igrep?include_prereleases)](https://github.com/william-nobara/igrep/releases)
+[![Release](https://img.shields.io/github/v/release/william-nobara/igrep?include_prereleases)](https://github.com/William9923/igrep/releases)
 
 A terminal UI for interactive grep search with real-time results and live file preview. Inspired by ijq (interactive jq), igrep provides a responsive interface for searching through codebases using ripgrep's powerful search engine.
 
@@ -99,10 +99,10 @@ Before installing igrep, ensure you have:
 
 ```bash
 # Install latest release
-go install github.com/william-nobara/igrep@latest
+go install github.com/William9923/igrep@latest
 
 # Or install specific version
-go install github.com/william-nobara/igrep@v0.0.1
+go install github.com/William9923/igrep@v0.0.1
 ```
 
 Ensure your Go bin directory is in your PATH:
@@ -118,7 +118,7 @@ go env GOPATH
 ### Method 2: Building from source
 
 ```bash
-git clone https://github.com/william-nobara/igrep.git
+git clone https://github.com/William9923/igrep.git
 cd igrep
 go build -o igrep .
 
@@ -317,14 +317,14 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
 Contributions are welcome! Feel free to:
 
-- Report bugs or suggest features via [GitHub Issues](https://github.com/william-nobara/igrep/issues)
+- Report bugs or suggest features via [GitHub Issues](https://github.com/William9923/igrep/issues)
 - Submit pull requests for improvements
 - Share feedback and usage examples
 
 ### Development
 
 ```bash
-git clone https://github.com/william-nobara/igrep.git
+git clone https://github.com/William9923/igrep.git
 cd igrep
 go mod download
 go build -o igrep .

@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"github.com/william-nobara/igrep/internal/highlight"
+	"github.com/William9923/igrep/internal/highlight"
 	"testing"
 )
 

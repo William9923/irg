@@ -30,7 +30,7 @@ igrep/
 │   │   └── ripgrep.go           # Ripgrep JSON parsing, streaming, context loading
 │   └── ui/
 │       └── model.go             # Bubble Tea Model/View/Update, TUI logic
-├── go.mod                       # Module: github.com/william-nobara/igrep
+├── go.mod                       # Module: github.com/William9923/igrep
 └── go.sum
 ```
 
@@ -62,7 +62,7 @@ import (
     "github.com/charmbracelet/lipgloss"
 
     // 3. Internal packages
-    "github.com/william-nobara/igrep/internal/search"
+    "github.com/William9923/igrep/internal/search"
 )
 ```
 
