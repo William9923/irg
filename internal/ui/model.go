@@ -48,15 +48,16 @@ type Model struct {
 	width  int
 	height int
 
-	searching    bool
-	matchCount   int
-	searchTime   time.Duration
-	searchStart  time.Time
-	errorMessage string
-	previewPath  string
-	previewLines []string
-	previewStart int
-	previewMatch int
+	searching         bool
+	matchCount        int
+	searchTime        time.Duration
+	searchStart       time.Time
+	errorMessage      string
+	previewPath       string
+	previewLines      []string
+	previewStart      int
+	previewMatch      int
+	previewSubmatches []search.Submatch
 
 	ctrlCPressed  bool
 	lastCtrlCTime time.Time
@@ -78,10 +79,11 @@ type searchErrorMsg struct {
 }
 
 type previewLoadedMsg struct {
-	path      string
-	lines     []string
-	startLine int
-	matchLine int
+	path       string
+	lines      []string
+	startLine  int
+	matchLine  int
+	submatches []search.Submatch
 }
 
 type editorFinishedMsg struct {
@@ -281,6 +283,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.previewLines = msg.lines
 			m.previewStart = msg.startLine
 			m.previewMatch = msg.matchLine
+			m.previewSubmatches = msg.submatches
 			m.updatePreviewView()
 		}
 		return m, nil
@@ -309,6 +312,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.previewPath = ""
 		m.previewLines = nil
+		m.previewSubmatches = nil
 
 		cmds = append(cmds, tea.Tick(debounceDelay, func(t time.Time) tea.Msg {
 			return debounceMsg{token: token, pattern: currentPattern, path: currentPath}
@@ -347,16 +351,17 @@ func (m *Model) loadPreview() tea.Cmd {
 	match := m.results[m.selectedIndex]
 
 	return func() tea.Msg {
-		ctx, err := search.GetFileContext(match.Path, match.LineNumber, previewContext)
+		ctx, err := search.GetFileContextWithMatches(match.Path, match.LineNumber, previewContext, match.Submatches)
 		if err != nil {
 			return previewLoadedMsg{path: match.Path, lines: []string{"Error loading preview: " + err.Error()}, startLine: 1, matchLine: 1}
 		}
 
 		return previewLoadedMsg{
-			path:      match.Path,
-			lines:     ctx.Lines,
-			startLine: ctx.StartLine,
-			matchLine: ctx.MatchLine,
+			path:       match.Path,
+			lines:      ctx.Lines,
+			startLine:  ctx.StartLine,
+			matchLine:  ctx.MatchLine,
+			submatches: ctx.Submatches,
 		}
 	}
 }
@@ -370,6 +375,7 @@ func (m *Model) executeSearch(pattern, path string) tea.Cmd {
 	m.searchStart = time.Now()
 	m.previewPath = ""
 	m.previewLines = nil
+	m.previewSubmatches = nil
 
 	m.searchCtx, m.searchCancel = context.WithCancel(context.Background())
 
@@ -410,12 +416,64 @@ func (m *Model) executeSearch(pattern, path string) tea.Cmd {
 	}
 }
 
+// highlightMatches applies highlighting to matched text using submatch positions
+func highlightMatches(text string, submatches []search.Submatch, highlightStyle lipgloss.Style) string {
+	if len(submatches) == 0 {
+		return text
+	}
+
+	// Sort submatches by start position to handle overlaps correctly
+	sortedMatches := make([]search.Submatch, len(submatches))
+	copy(sortedMatches, submatches)
+
+	// Simple bubble sort since we typically have few submatches
+	for i := 0; i < len(sortedMatches); i++ {
+		for j := i + 1; j < len(sortedMatches); j++ {
+			if sortedMatches[i].Start > sortedMatches[j].Start {
+				sortedMatches[i], sortedMatches[j] = sortedMatches[j], sortedMatches[i]
+			}
+		}
+	}
+
+	var sb strings.Builder
+	lastEnd := 0
+
+	for _, match := range sortedMatches {
+		// Handle bounds checking
+		start := match.Start
+		end := match.End
+		if start < 0 || end < 0 || start >= len(text) || end > len(text) || start >= end {
+			continue
+		}
+
+		// Add text before this match
+		if start > lastEnd {
+			sb.WriteString(text[lastEnd:start])
+		}
+
+		// Add highlighted match text
+		matchText := text[start:end]
+		sb.WriteString(highlightStyle.Render(matchText))
+
+		lastEnd = end
+	}
+
+	// Add remaining text after last match
+	if lastEnd < len(text) {
+		sb.WriteString(text[lastEnd:])
+	}
+
+	return sb.String()
+}
+
 func (m *Model) updateResultsView() {
 	var sb strings.Builder
 
 	pathStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 	lineNumStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 	selectedStyle := lipgloss.NewStyle().Background(lipgloss.Color("237")).Bold(true)
+	matchHighlightStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true)
+	selectedMatchHighlightStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true)
 
 	for i, match := range m.results {
 		lineText := strings.TrimRight(match.LineText, "\n\r")
@@ -424,10 +482,17 @@ func (m *Model) updateResultsView() {
 			lineText = lineText[:maxTextLen-3] + "..."
 		}
 
+		var highlightedText string
+		if i == m.selectedIndex {
+			highlightedText = highlightMatches(lineText, match.Submatches, selectedMatchHighlightStyle)
+		} else {
+			highlightedText = highlightMatches(lineText, match.Submatches, matchHighlightStyle)
+		}
+
 		line := fmt.Sprintf("%s:%s: %s",
 			pathStyle.Render(match.Path),
 			lineNumStyle.Render(fmt.Sprintf("%d", match.LineNumber)),
-			lineText)
+			highlightedText)
 
 		if i == m.selectedIndex {
 			line = selectedStyle.Render("> " + line)
@@ -454,9 +519,11 @@ func (m *Model) updatePreviewView() {
 	}
 
 	var sb strings.Builder
-	lineNumStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Width(4)
-	matchLineStyle := lipgloss.NewStyle().Background(lipgloss.Color("22"))
+	normalLineNumStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Width(4)
 	separatorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+
+	matchLineStyle := lipgloss.NewStyle().Background(lipgloss.Color("226")).Foreground(lipgloss.Color("0"))
+	matchLineNumStyle := lipgloss.NewStyle().Background(lipgloss.Color("226")).Foreground(lipgloss.Color("0")).Bold(true).Width(4)
 
 	sb.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("14")).Bold(true).Render(m.previewPath))
 	sb.WriteString("\n")
@@ -465,12 +532,14 @@ func (m *Model) updatePreviewView() {
 
 	for i, line := range m.previewLines {
 		lineNum := m.previewStart + i
-		numStr := lineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
 
 		if lineNum == m.previewMatch {
-			sb.WriteString(numStr + " " + matchLineStyle.Render(line))
+			styledLineNum := matchLineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
+			styledLine := matchLineStyle.Render(line)
+			sb.WriteString(styledLineNum + " " + styledLine)
 		} else {
-			sb.WriteString(numStr + " " + line)
+			normalLineNum := normalLineNumStyle.Render(fmt.Sprintf("%4d", lineNum))
+			sb.WriteString(normalLineNum + " " + line)
 		}
 		sb.WriteString("\n")
 	}

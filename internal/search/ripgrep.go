@@ -177,6 +177,47 @@ type FileContext struct {
 	MatchLine  int
 	MatchStart int
 	MatchEnd   int
+	Submatches []Submatch
+}
+
+func GetFileContextWithMatches(path string, lineNum, contextLines int, submatches []Submatch) (*FileContext, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	startLine := lineNum - contextLines
+	if startLine < 1 {
+		startLine = 1
+	}
+	endLine := lineNum + contextLines
+
+	scanner := bufio.NewScanner(file)
+	var lines []string
+	currentLine := 0
+
+	for scanner.Scan() {
+		currentLine++
+		if currentLine < startLine {
+			continue
+		}
+		if currentLine > endLine {
+			break
+		}
+		lines = append(lines, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return &FileContext{
+		Lines:      lines,
+		StartLine:  startLine,
+		MatchLine:  lineNum,
+		Submatches: submatches,
+	}, nil
 }
 
 func GetFileContext(path string, lineNum, contextLines int) (*FileContext, error) {
