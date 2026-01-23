@@ -1,19 +1,69 @@
 # igrep - Interactive Grep
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/william-nobara/igrep)](https://goreportcard.com/report/github.com/william-nobara/igrep)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/william-nobara/igrep)](https://golang.org/dl/)
+
 A terminal UI for interactive grep search with real-time results and live file preview. Inspired by ijq (interactive jq), igrep provides a responsive interface for searching through codebases using ripgrep's powerful search engine.
 
-## Features
+## 🎬 Demo
 
-- Real-time search results as you type
-- 200ms debounce for responsive typing experience
-- Split-pane UI: results list (left) and file preview (right)
-- Context preview showing 5 lines above and below each match
-- Match line highlighting in the preview pane
-- Path scoping via dedicated input field
-- Smart-case search (case-insensitive unless uppercase is used)
-- Streaming results with batching for smooth UI updates
-- Results capped at 10,000 for performance
-- Built on Charm's Bubble Tea framework for elegant TUI
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ igrep - Interactive Grep                                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│ Pattern: func.*Error                         │ Path:                    │
+│                                             │                          │
+├─────────────────────────────────────────────┼──────────────────────────┤
+│ [1] main.go:45                              │ 43: // validateInput     │
+│     func validateInput() error {            │ 44: // checks if the     │ 
+│                                             │ 45: func validateInput() │
+│ [2] search/ripgrep.go:123                   │ >>> error {              │
+│     func parseError(data []byte) error {    │ 46:   if input == "" {   │
+│                                             │ 47:     return fmt.Error │
+│ [3] ui/model.go:234                         │                          │
+│     func handleKeyError() tea.Model {       │                          │
+│                                             │                          │
+│ [4] internal/search/ripgrep.go:89           │                          │
+│     func streamResultsWithError() error {   │                          │
+├─────────────────────────────────────────────┼──────────────────────────┤
+│ 🔍 Smart Case • ↑↓ Navigate • Tab Switch • Ctrl+T Toggle • Enter Open  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Key Features Demonstrated:**
+- **Left pane**: Real-time search results with file paths and line numbers
+- **Right pane**: File context showing 5 lines around the match  
+- **Highlighted match**: The actual matching line is visually emphasized
+- **Status bar**: Shows current search mode and available keybindings
+- **Dual inputs**: Separate fields for pattern and optional path scoping
+
+## ✨ Features
+
+### 🚀 Performance & Responsiveness
+- **Real-time search results** as you type with 200ms debounce
+- **Streaming results** with smart batching (every 50ms or 100 matches)
+- **Performance optimized** with results capped at 10,000 matches
+- **Powered by ripgrep** for blazing-fast text search
+
+### 🎨 User Interface  
+- **Split-pane design**: Results list (left) + file preview (right)
+- **Context preview**: Shows 5 lines above and below each match
+- **Match highlighting** in the preview pane for easy identification
+- **Dual input fields**: Separate pattern and path scoping
+- **Status indicators**: Current search mode and available shortcuts
+
+### 🔧 Smart Search Features
+- **Smart-case search**: Case-insensitive for lowercase, sensitive for mixed case
+- **Case sensitivity toggle**: Cycle through Smart → Sensitive → Insensitive  
+- **Path scoping**: Limit search to specific directories or file patterns
+- **Regex support**: Full regex pattern matching via ripgrep
+
+### ⚡ Workflow Integration
+- **Editor integration**: Press Enter to open files at the exact match line
+- **Keyboard-driven**: Complete functionality without mouse
+- **Responsive design**: Adapts to terminal size changes
+- **Clean exit**: Graceful shutdown with Ctrl+C
 
 ## Requirements
 
@@ -22,30 +72,68 @@ A terminal UI for interactive grep search with real-time results and live file p
 
 ## Installation
 
-### Via go install
+### Prerequisites
+
+Before installing igrep, ensure you have:
+
+- **ripgrep (rg)**: Must be installed and available in your PATH
+  ```bash
+  # Ubuntu/Debian
+  sudo apt install ripgrep
+  
+  # macOS
+  brew install ripgrep
+  
+  # Windows (via Chocolatey)
+  choco install ripgrep
+  
+  # Or download from: https://github.com/BurntSushi/ripgrep/releases
+  ```
+
+- **Go 1.23.4+**: Required only if building from source
+
+### Method 1: Via go install (Recommended)
 
 ```bash
 go install github.com/william-nobara/igrep@latest
 ```
 
-Ensure your GOPATH/bin is in your PATH:
+Ensure your Go bin directory is in your PATH:
 
 ```bash
+# Add this to your ~/.bashrc, ~/.zshrc, or equivalent
 export PATH=$PATH:$(go env GOPATH)/bin
+
+# Or check where Go installs binaries
+go env GOPATH
 ```
 
-### Building from source
+### Method 2: Building from source
 
 ```bash
 git clone https://github.com/william-nobara/igrep.git
 cd igrep
 go build -o igrep .
+
+# Optional: Move to your PATH
+sudo mv igrep /usr/local/bin/
+# Or for user-only install:
+mv igrep ~/.local/bin/  # Ensure ~/.local/bin is in your PATH
 ```
 
-Move the binary to a directory in your PATH:
+### Verify Installation
+
+After installation, verify everything works:
 
 ```bash
-sudo mv igrep /usr/local/bin/
+# Check igrep is accessible
+which igrep
+
+# Check ripgrep is accessible
+which rg
+
+# Test igrep (should start the TUI)
+igrep --help
 ```
 
 ## Usage
@@ -80,12 +168,36 @@ igrep --case=insensitive  # Force case-insensitive search
 
 ### Basic Workflow
 
-1. Type your search pattern in the pattern input field
-2. Results appear automatically after 200ms of inactivity
-3. Use arrow keys to navigate through matches
-4. View file context in the right preview pane
-5. Optionally, specify a path scope in the path input field
-6. Press Esc or Ctrl+C to exit
+**1. Start igrep in your project:**
+```bash
+cd your-project
+igrep
+```
+
+**2. Type your search pattern:**
+```
+Pattern: [function.*main_____] ← your cursor here
+```
+Results appear in real-time as you type!
+
+**3. Navigate through results:**
+```
+Results:                          Preview:
+[1] main.go:12               →    10: package main
+    function main() {             11: 
+[2] src/app.go:45                 12: function main() {
+    function mainLoop() {         13:   fmt.Println("Hello")
+                                  14: }
+```
+
+**4. Optional path scoping:**
+```
+Pattern: error                Path: [src/______]
+```
+Only searches within the `src/` directory.
+
+**5. Open files in your editor:**
+Press `Enter` on any result to open the file at that line in your default editor.
 
 ### Search Options
 
@@ -95,7 +207,31 @@ igrep supports three case sensitivity modes:
 - **Sensitive**: Always case-sensitive search  
 - **Insensitive**: Always case-insensitive search
 
-You can set the initial mode with `--case=smart|sensitive|insensitive` or toggle between modes interactively with **Ctrl+T**.
+### Example Use Cases
+
+**🔍 Find function definitions:**
+```bash
+Pattern: "func.*Search"
+Results: All functions containing "Search" in their name
+```
+
+**📁 Search in specific directories:**
+```bash
+Pattern: "TODO"          Path: "src/components/"
+Results: All TODO comments in component files
+```
+
+**🐛 Debug error handling:**
+```bash
+Pattern: "error.*return"
+Results: All error handling patterns in your codebase
+```
+
+**📝 Find configuration:**
+```bash
+Pattern: "config\."      Path: "*.go"
+Results: All config usage in Go files
+```
 
 ## How It Works
 
@@ -159,6 +295,31 @@ igrep is built on a clean separation of concerns:
 - **github.com/charmbracelet/bubbles** (v0.20.0): Component library for Bubble Tea (textinput, viewport)
 - **github.com/charmbracelet/lipgloss** (v1.0.0): Styling library for terminal UI
 
+## Contributing
+
+Contributions are welcome! Feel free to:
+
+- Report bugs or suggest features via [GitHub Issues](https://github.com/william-nobara/igrep/issues)
+- Submit pull requests for improvements
+- Share feedback and usage examples
+
+### Development
+
+```bash
+git clone https://github.com/william-nobara/igrep.git
+cd igrep
+go mod download
+go build -o igrep .
+```
+
+See [AGENTS.md](AGENTS.md) for detailed development guidelines.
+
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Built with [Charm's Bubble Tea](https://github.com/charmbracelet/bubbletea) TUI framework
+- Powered by [ripgrep](https://github.com/BurntSushi/ripgrep) for fast text search
+- Inspired by [ijq](https://sr.ht/~gpanders/ijq/) for interactive JSON querying

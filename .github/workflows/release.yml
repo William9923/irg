@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Run tests
+      run: go test ./...
+
+    - name: Build binaries
+      run: |
+        # Build for multiple platforms
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/igrep-linux-amd64 .
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/igrep-linux-arm64 .
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/igrep-darwin-amd64 .
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/igrep-darwin-arm64 .
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/igrep-windows-amd64.exe .
+        
+        # Create archives
+        cd dist
+        tar -czf igrep-linux-amd64.tar.gz igrep-linux-amd64
+        tar -czf igrep-linux-arm64.tar.gz igrep-linux-arm64
+        tar -czf igrep-darwin-amd64.tar.gz igrep-darwin-amd64
+        tar -czf igrep-darwin-arm64.tar.gz igrep-darwin-arm64
+        zip igrep-windows-amd64.zip igrep-windows-amd64.exe
+
+    - name: Generate checksums
+      run: |
+        cd dist
+        sha256sum *.tar.gz *.zip > checksums.txt
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          dist/*.tar.gz
+          dist/*.zip
+          dist/checksums.txt
+        body: |
+          ## What's Changed
+          
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for detailed changes.
+          
+          ## Installation
+          
+          ### Via go install (recommended)
+          ```bash
+          go install github.com/${{ github.repository }}@${{ github.ref_name }}
+          ```
+          
+          ### Download binary
+          1. Download the appropriate binary for your platform from the assets below
+          2. Extract the archive
+          3. Move the binary to a directory in your PATH
+          
+          ## Verification
+          
+          All binaries are signed and checksums are provided. Verify your download:
+          ```bash
+          sha256sum -c checksums.txt
+          ```
+          
+          **Requirements:** ripgrep must be installed and available in your PATH.
+        draft: false
+        prerelease: false
