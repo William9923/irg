@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/william-nobara/igrep/internal/editor"
 	"github.com/william-nobara/igrep/internal/search"
 )
 
@@ -80,6 +81,10 @@ type previewLoadedMsg struct {
 	lines     []string
 	startLine int
 	matchLine int
+}
+
+type editorFinishedMsg struct {
+	err error
 }
 
 func NewModel() Model {
@@ -159,9 +164,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 
 		case "enter":
-			if m.selectedIndex < len(m.results) {
-				match := m.results[m.selectedIndex]
-				_ = match
+			if m.selectedIndex < len(m.results) && len(m.results) > 0 {
+				return m, m.openInEditor()
 			}
 			return m, nil
 
@@ -245,6 +249,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.searching = false
 		return m, nil
 
+	case editorFinishedMsg:
+		if msg.err != nil {
+			m.errorMessage = fmt.Sprintf("Editor error: %v", msg.err)
+		} else {
+			m.errorMessage = ""
+		}
+		return m, nil
+
 	case previewLoadedMsg:
 		if m.selectedIndex < len(m.results) && m.results[m.selectedIndex].Path == msg.path {
 			m.previewPath = msg.path
@@ -286,6 +298,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *Model) openInEditor() tea.Cmd {
+	if m.selectedIndex >= len(m.results) {
+		return nil
+	}
+
+	match := m.results[m.selectedIndex]
+
+	ed, err := editor.GetEditor()
+	if err != nil {
+		return func() tea.Msg {
+			return editorFinishedMsg{err: err}
+		}
+	}
+
+	cmd := ed.BuildCommand(match.Path, match.LineNumber)
+
+	return tea.ExecProcess(cmd, func(err error) tea.Msg {
+		return editorFinishedMsg{err: err}
+	})
 }
 
 func (m *Model) loadPreview() tea.Cmd {
@@ -488,8 +521,13 @@ func (m Model) View() string {
 	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, patternBox, " ", pathBox, "  ", statusStyle.Render(status))
 
 	var helpText string
-	helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-		"Keys: ↑/↓ or Ctrl+P/N (navigate) | Tab (switch input) | Ctrl+C twice (quit)")
+	if len(m.results) > 0 {
+		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+C twice (quit)")
+	} else {
+		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			"Keys: Tab (switch input) | Ctrl+C twice (quit)")
+	}
 	if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(
 			"Press Ctrl+C again to quit")
