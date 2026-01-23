@@ -313,6 +313,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.previewPath = ""
 		m.previewLines = nil
 		m.previewSubmatches = nil
+		m.updatePreviewView()
 
 		cmds = append(cmds, tea.Tick(debounceDelay, func(t time.Time) tea.Msg {
 			return debounceMsg{token: token, pattern: currentPattern, path: currentPath}
