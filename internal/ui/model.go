@@ -55,6 +55,10 @@ type Model struct {
 	previewLines []string
 	previewStart int
 	previewMatch int
+
+	showHelp      bool
+	ctrlCPressed  bool
+	lastCtrlCTime time.Time
 }
 
 type searchResultMsg struct {
@@ -103,6 +107,8 @@ func NewModel() Model {
 		searcher:     search.NewSearcher(),
 		results:      make([]search.Match, 0),
 		lastPath:     ".",
+		width:        80, // Default width for help positioning
+		height:       24, // Default height for help positioning
 	}
 }
 
@@ -115,9 +121,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.showHelp {
+			switch msg.String() {
+			case "?", "esc":
+				m.showHelp = false
+				return m, nil
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
-		case "ctrl+c", "esc":
-			return m, tea.Quit
+		case "ctrl+c":
+			now := time.Now()
+			if m.ctrlCPressed && now.Sub(m.lastCtrlCTime) < 2*time.Second {
+				return m, tea.Quit
+			}
+			m.ctrlCPressed = true
+			m.lastCtrlCTime = now
+			return m, nil
+
+		case "?":
+			m.showHelp = !m.showHelp
+			return m, nil
 
 		case "tab":
 			if m.focused == focusPattern {
@@ -176,6 +201,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 		}
 
+		// Reset Ctrl+C state on any other key press
+		if msg.String() != "ctrl+c" {
+			m.ctrlCPressed = false
+		}
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
@@ -189,9 +219,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		previewWidth := msg.Width - listWidth - 5
 
 		m.resultsView.Width = listWidth
-		m.resultsView.Height = msg.Height - 5
+		m.resultsView.Height = msg.Height - 7 // Account for input row + help text
 		m.previewView.Width = previewWidth
-		m.previewView.Height = msg.Height - 5
+		m.previewView.Height = msg.Height - 7 // Account for input row + help text
 
 		m.updateResultsView()
 		m.updatePreviewView()
@@ -416,13 +446,13 @@ func (m Model) View() string {
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("240")).
 		Width(m.width / 3).
-		Height(m.height - 5)
+		Height(m.height - 7) // Account for input row + help text
 
 	previewStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("240")).
 		Width(m.width - m.width/3 - 5).
-		Height(m.height - 5)
+		Height(m.height - 7) // Account for input row + help text
 
 	activeInputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -471,9 +501,25 @@ func (m Model) View() string {
 
 	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, patternBox, " ", pathBox, "  ", statusStyle.Render(status))
 
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		mainContent,
-		inputRow,
-	)
+	var helpText string
+	if m.showHelp {
+		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Tab (switch input) | ? (toggle help) | Ctrl+C twice (quit)")
+	} else if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
+		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(
+			"Press Ctrl+C again to quit, or ? for help")
+	} else {
+		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			"Press ? for help")
+	}
+
+	var viewComponents []string
+	viewComponents = append(viewComponents, mainContent, inputRow)
+	if helpText != "" {
+		viewComponents = append(viewComponents, helpText)
+	}
+
+	view := lipgloss.JoinVertical(lipgloss.Left, viewComponents...)
+
+	return view
 }
