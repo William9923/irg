@@ -93,9 +93,34 @@ Before installing igrep, ensure you have:
   # Or download from: https://github.com/BurntSushi/ripgrep/releases
   ```
 
-- **Go 1.23.4+**: Required only if building from source
+- **Go 1.23.4+**: Required for building from source or using `go install`
 
-### Method 1: Via go install (Recommended)
+### Method 1: Download precompiled binary (Recommended)
+
+Download the latest release from GitHub:
+
+```bash
+# Linux (x86_64)
+curl -L https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-linux-amd64.tar.gz | tar -xz
+sudo mv igrep /usr/local/bin/
+
+# macOS (x86_64)
+curl -L https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-darwin-amd64.tar.gz | tar -xz
+sudo mv igrep /usr/local/bin/
+
+# macOS (ARM64/M1+)
+curl -L https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-darwin-arm64.tar.gz | tar -xz
+sudo mv igrep /usr/local/bin/
+
+# Windows (PowerShell)
+Invoke-WebRequest -Uri "https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-windows-amd64.zip" -OutFile "igrep.zip"
+Expand-Archive -Path "igrep.zip" -DestinationPath "."
+# Move igrep.exe to a directory in your PATH
+```
+
+Or visit the [releases page](https://github.com/William9923/igrep/releases/tag/v0.0.1) to download manually.
+
+### Method 2: Via go install
 
 ```bash
 # Install latest release
@@ -115,7 +140,7 @@ export PATH=$PATH:$(go env GOPATH)/bin
 go env GOPATH
 ```
 
-### Method 2: Building from source
+### Method 3: Building from source
 
 ```bash
 git clone https://github.com/William9923/igrep.git
