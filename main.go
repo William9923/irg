@@ -7,8 +7,8 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/William9923/igrep/internal/search"
-	"github.com/William9923/igrep/internal/ui"
+	"github.com/William9923/irg/internal/search"
+	"github.com/William9923/irg/internal/ui"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -45,7 +45,7 @@ func main() {
 	)
 
 	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error running igrep: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error running irg: %v\n", err)
 		os.Exit(1)
 	}
 }

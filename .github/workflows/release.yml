@@ -28,19 +28,19 @@ jobs:
     - name: Build binaries
       run: |
         # Build for multiple platforms
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/igrep-linux-amd64 .
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/igrep-linux-arm64 .
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/igrep-darwin-amd64 .
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/igrep-darwin-arm64 .
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/igrep-windows-amd64.exe .
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/irg-linux-amd64 .
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/irg-linux-arm64 .
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/irg-darwin-amd64 .
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/irg-darwin-arm64 .
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/irg-windows-amd64.exe .
         
         # Create archives
         cd dist
-        tar -czf igrep-linux-amd64.tar.gz igrep-linux-amd64
-        tar -czf igrep-linux-arm64.tar.gz igrep-linux-arm64
-        tar -czf igrep-darwin-amd64.tar.gz igrep-darwin-amd64
-        tar -czf igrep-darwin-arm64.tar.gz igrep-darwin-arm64
-        zip igrep-windows-amd64.zip igrep-windows-amd64.exe
+        tar -czf irg-linux-amd64.tar.gz irg-linux-amd64
+        tar -czf irg-linux-arm64.tar.gz irg-linux-arm64
+        tar -czf irg-darwin-amd64.tar.gz irg-darwin-amd64
+        tar -czf irg-darwin-arm64.tar.gz irg-darwin-arm64
+        zip irg-windows-amd64.zip irg-windows-amd64.exe
 
     - name: Generate checksums
       run: |

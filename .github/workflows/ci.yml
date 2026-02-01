@@ -40,5 +40,5 @@ jobs:
     
     - name: Test binary
       run: |
-        ./igrep --help || true  # Allow non-zero exit for help
+        ./irg --help || true  # Allow non-zero exit for help
         which rg  # Verify ripgrep is available

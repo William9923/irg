@@ -1,15 +1,15 @@
-# AGENTS.md - AI Coding Agent Guidelines for igrep
+# AGENTS.md - AI Coding Agent Guidelines for irg
 
 ## Project Overview
 
-**igrep** is an interactive grep TUI tool built with Go and the Charm ecosystem (Bubble Tea, Bubbles, Lipgloss). It wraps ripgrep with a real-time search interface.
+**irg** is an interactive ripgrep TUI tool built with Go and the Charm ecosystem (Bubble Tea, Bubbles, Lipgloss). It wraps ripgrep with a real-time search interface.
 
 ## Quick Reference
 
 | Command | Description |
 |---------|-------------|
 | `go build` | Build the binary |
-| `go build -o igrep .` | Build with explicit output name |
+| `go build -o irg .` | Build with explicit output name |
 | `go run .` | Run without building |
 | `go test ./...` | Run all tests |
 | `go test -v ./internal/search` | Run tests in specific package |
@@ -23,14 +23,14 @@
 ## Project Structure
 
 ```
-igrep/
+irg/
 ├── main.go                      # Entry point, ripgrep check, tea.Program setup
 ├── internal/
 │   ├── search/
 │   │   └── ripgrep.go           # Ripgrep JSON parsing, streaming, context loading
 │   └── ui/
 │       └── model.go             # Bubble Tea Model/View/Update, TUI logic
-├── go.mod                       # Module: github.com/William9923/igrep
+├── go.mod                       # Module: github.com/William9923/irg
 └── go.sum
 ```
 
@@ -62,7 +62,7 @@ import (
     "github.com/charmbracelet/lipgloss"
 
     // 3. Internal packages
-    "github.com/William9923/igrep/internal/search"
+    "github.com/William9923/irg/internal/search"
 )
 ```
 

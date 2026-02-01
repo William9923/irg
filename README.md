@@ -1,19 +1,19 @@
-# igrep - Interactive Grep
+# irg - Interactive Ripgrep
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/William9923/igrep)](https://goreportcard.com/report/github.com/William9923/igrep)
+[![Go Report Card](https://goreportcard.com/badge/github.com/William9923/irg)](https://goreportcard.com/report/github.com/William9923/irg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/william-nobara/igrep)](https://golang.org/dl/)
-[![Release](https://img.shields.io/github/v/release/william-nobara/igrep?include_prereleases)](https://github.com/William9923/igrep/releases)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/william-nobara/irg)](https://golang.org/dl/)
+[![Release](https://img.shields.io/github/v/release/william-nobara/irg?include_prereleases)](https://github.com/William9923/irg/releases)
 
-A terminal UI for interactive grep search with real-time results and live file preview. Inspired by ijq (interactive jq), igrep provides a responsive interface for searching through codebases using ripgrep's powerful search engine.
+A terminal UI for interactive grep search with real-time results and live file preview. Inspired by ijq (interactive jq), irg provides a responsive interface for searching through codebases using ripgrep's powerful search engine.
 
-> **⚠️ Alpha Release**: igrep is currently in alpha (v0.0.x). While functional, expect some rough edges and missing features. Feedback and contributions are welcome!
+> **⚠️ Alpha Release**: irg is currently in alpha (v0.0.x). While functional, expect some rough edges and missing features. Feedback and contributions are welcome!
 
 ## 🎬 Demo
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ igrep - Interactive Grep                                                │
+│ irg - Interactive Ripgrep                                               │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ Pattern: func.*Error                         │ Path:                    │
 │                                             │                          │
@@ -77,7 +77,7 @@ A terminal UI for interactive grep search with real-time results and live file p
 
 ### Prerequisites
 
-Before installing igrep, ensure you have:
+Before installing irg, ensure you have:
 
 - **ripgrep (rg)**: Must be installed and available in your PATH
   ```bash
@@ -101,33 +101,33 @@ Download the latest release from GitHub:
 
 ```bash
 # Linux (x86_64)
-curl -L https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-linux-amd64.tar.gz | tar -xz
-sudo mv igrep /usr/local/bin/
+curl -L https://github.com/William9923/irg/releases/download/v0.0.1/irg-v0.0.1-linux-amd64.tar.gz | tar -xz
+sudo mv irg /usr/local/bin/
 
 # macOS (x86_64)
-curl -L https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-darwin-amd64.tar.gz | tar -xz
-sudo mv igrep /usr/local/bin/
+curl -L https://github.com/William9923/irg/releases/download/v0.0.1/irg-v0.0.1-darwin-amd64.tar.gz | tar -xz
+sudo mv irg /usr/local/bin/
 
 # macOS (ARM64/M1+)
-curl -L https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-darwin-arm64.tar.gz | tar -xz
-sudo mv igrep /usr/local/bin/
+curl -L https://github.com/William9923/irg/releases/download/v0.0.1/irg-v0.0.1-darwin-arm64.tar.gz | tar -xz
+sudo mv irg /usr/local/bin/
 
 # Windows (PowerShell)
-Invoke-WebRequest -Uri "https://github.com/William9923/igrep/releases/download/v0.0.1/igrep-v0.0.1-windows-amd64.zip" -OutFile "igrep.zip"
-Expand-Archive -Path "igrep.zip" -DestinationPath "."
-# Move igrep.exe to a directory in your PATH
+Invoke-WebRequest -Uri "https://github.com/William9923/irg/releases/download/v0.0.1/irg-v0.0.1-windows-amd64.zip" -OutFile "irg.zip"
+Expand-Archive -Path "irg.zip" -DestinationPath "."
+# Move irg.exe to a directory in your PATH
 ```
 
-Or visit the [releases page](https://github.com/William9923/igrep/releases/tag/v0.0.1) to download manually.
+Or visit the [releases page](https://github.com/William9923/irg/releases/tag/v0.0.1) to download manually.
 
 ### Method 2: Via go install
 
 ```bash
 # Install latest release
-go install github.com/William9923/igrep@latest
+go install github.com/William9923/irg@latest
 
 # Or install specific version
-go install github.com/William9923/igrep@v0.0.1
+go install github.com/William9923/irg@v0.0.1
 ```
 
 Ensure your Go bin directory is in your PATH:
@@ -143,14 +143,14 @@ go env GOPATH
 ### Method 3: Building from source
 
 ```bash
-git clone https://github.com/William9923/igrep.git
-cd igrep
-go build -o igrep .
+git clone https://github.com/William9923/irg.git
+cd irg
+go build -o irg .
 
 # Optional: Move to your PATH
-sudo mv igrep /usr/local/bin/
+sudo mv irg /usr/local/bin/
 # Or for user-only install:
-mv igrep ~/.local/bin/  # Ensure ~/.local/bin is in your PATH
+mv irg ~/.local/bin/  # Ensure ~/.local/bin is in your PATH
 ```
 
 ### Verify Installation
@@ -158,22 +158,22 @@ mv igrep ~/.local/bin/  # Ensure ~/.local/bin is in your PATH
 After installation, verify everything works:
 
 ```bash
-# Check igrep is accessible
-which igrep
+# Check irg is accessible
+which irg
 
 # Check ripgrep is accessible
 which rg
 
-# Test igrep (should start the TUI)
-igrep --help
+# Test irg (should start the TUI)
+irg --help
 ```
 
 ## Usage
 
-Start igrep in your project directory:
+Start irg in your project directory:
 
 ```bash
-igrep
+irg
 ```
 
 ### Command Line Options
@@ -185,8 +185,8 @@ igrep
 
 Example:
 ```bash
-igrep --case=sensitive    # Force case-sensitive search
-igrep --case=insensitive  # Force case-insensitive search
+irg --case=sensitive    # Force case-sensitive search
+irg --case=insensitive  # Force case-insensitive search
 ```
 
 ### Keybindings
@@ -200,10 +200,10 @@ igrep --case=insensitive  # Force case-insensitive search
 
 ### Basic Workflow
 
-**1. Start igrep in your project:**
+**1. Start irg in your project:**
 ```bash
 cd your-project
-igrep
+irg
 ```
 
 **2. Type your search pattern:**
@@ -233,7 +233,7 @@ Press `Enter` on any result to open the file at that line in your default editor
 
 ### Search Options
 
-igrep supports three case sensitivity modes:
+irg supports three case sensitivity modes:
 
 - **Smart** (default): Case-insensitive search for lowercase patterns, case-sensitive for patterns with uppercase letters
 - **Sensitive**: Always case-sensitive search  
@@ -269,7 +269,7 @@ Results: All config usage in Go files
 
 ### Architecture
 
-igrep is built on a clean separation of concerns:
+irg is built on a clean separation of concerns:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -342,17 +342,17 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
 Contributions are welcome! Feel free to:
 
-- Report bugs or suggest features via [GitHub Issues](https://github.com/William9923/igrep/issues)
+- Report bugs or suggest features via [GitHub Issues](https://github.com/William9923/irg/issues)
 - Submit pull requests for improvements
 - Share feedback and usage examples
 
 ### Development
 
 ```bash
-git clone https://github.com/William9923/igrep.git
-cd igrep
+git clone https://github.com/William9923/irg.git
+cd irg
 go mod download
-go build -o igrep .
+go build -o irg .
 ```
 
 See [AGENTS.md](AGENTS.md) for detailed development guidelines.

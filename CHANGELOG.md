@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.1] - TBD
 
 ### Added
-- Initial alpha release of igrep - Interactive Grep TUI
+- Initial alpha release of irg - Interactive Ripgrep TUI
 - Real-time search results as you type with ripgrep integration
 - Split-pane interface: results list (left) and file preview (right)
 - Debounced input (200ms) for responsive typing experience
@@ -49,5 +49,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No configuration file support
 - No match highlighting within lines (submatch data parsed but not displayed)
 
-[Unreleased]: https://github.com/William9923/igrep/compare/v0.0.1...HEAD
-[0.0.1]: https://github.com/William9923/igrep/releases/tag/v0.0.1
+[Unreleased]: https://github.com/William9923/irg/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/William9923/irg/releases/tag/v0.0.1

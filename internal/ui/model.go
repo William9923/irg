@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/William9923/igrep/internal/editor"
-	"github.com/William9923/igrep/internal/highlight"
-	"github.com/William9923/igrep/internal/search"
+	"github.com/William9923/irg/internal/editor"
+	"github.com/William9923/irg/internal/highlight"
+	"github.com/William9923/irg/internal/search"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
