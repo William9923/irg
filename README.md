@@ -183,20 +183,24 @@ irg
   - `smart` (default): Case-insensitive unless uppercase is used
   - `sensitive`: Always case-sensitive
   - `insensitive`: Always case-insensitive
+- `--type=TYPE`: Include only files of type (e.g., `--type=go`)
+- `--type-not=TYPE`: Exclude files of type (e.g., `--type-not=test`)
 
 Example:
 ```bash
 irg --case=sensitive    # Force case-sensitive search
 irg --case=insensitive  # Force case-insensitive search
+irg --type=go --type=rust "func" # Search only in Go and Rust files
 ```
 
 ### Keybindings
 
-- **Tab**: Switch between pattern input and path input
-- **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate through results
+- **Tab**: Cycle between pattern input, path input, and type filter
+- **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate through results (or dropdown when visible)
+- **Enter**: Open selected result in your default editor (or select from dropdown when visible)
 - **PgUp/PgDn**: Jump 10 results at a time
 - **Ctrl+T**: Toggle case sensitivity mode (Smart → Sensitive → Insensitive → Smart)
-- **Enter**: Open selected result in your default editor
+- **Esc**: Close dropdown or clear type input
 - **Ctrl+C**: Quit (press twice quickly)
 
 ### Basic Workflow
@@ -318,8 +322,8 @@ irg is built on a clean separation of concerns:
 ### v0.1.0 - Enhanced Search
 - [x] Syntax highlighting in preview (✅ Implemented)
 - [x] Editor integration with line number support (✅ Implemented)
+- [x] File type filtering (--type flag) (✅ Implemented)
 - [ ] Regex/literal mode toggle
-- [ ] File type filtering (--type flag)
 - [ ] Improved error handling
 
 ### v0.2.0 - User Experience  

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type CaseSensitivity int
@@ -60,7 +61,7 @@ func NewSearcher() *Searcher {
 	return &Searcher{}
 }
 
-func (s *Searcher) Search(ctx context.Context, pattern, path string, caseSensitivity CaseSensitivity, results chan<- Match) error {
+func (s *Searcher) Search(ctx context.Context, pattern, path string, caseSensitivity CaseSensitivity, fileTypes []string, fileTypesNot []string, results chan<- Match) error {
 	if pattern == "" {
 		close(results)
 		return nil
@@ -71,18 +72,27 @@ func (s *Searcher) Search(ctx context.Context, pattern, path string, caseSensiti
 		"--line-number",
 		"--column",
 		"--max-count=1000",
-		"--",
-		pattern,
 	}
+
+	// Add file types
+	for _, t := range fileTypes {
+		args = append(args, "--type", t)
+	}
+	for _, t := range fileTypesNot {
+		args = append(args, "--type-not", t)
+	}
+
+	args = append(args, "--")
+	args = append(args, pattern)
 
 	// Add case sensitivity flag based on mode
 	switch caseSensitivity {
 	case CaseSmart:
-		args = append(args[:4], append([]string{"--smart-case"}, args[4:]...)...)
+		args = append(args, "--smart-case")
 	case CaseSensitive:
-		args = append(args[:4], append([]string{"--case-sensitive"}, args[4:]...)...)
+		args = append(args, "--case-sensitive")
 	case CaseInsensitive:
-		args = append(args[:4], append([]string{"--ignore-case"}, args[4:]...)...)
+		args = append(args, "--ignore-case")
 	}
 
 	if path != "" {
@@ -169,6 +179,27 @@ func (s *Searcher) Cancel() {
 	if s.cmd != nil && s.cmd.Process != nil {
 		s.cmd.Process.Kill()
 	}
+}
+
+func LoadRipgrepTypes() ([]string, error) {
+	cmd := exec.Command("rg", "--type-list")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	var types []string
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, ":", 2)
+		if len(parts) > 0 {
+			types = append(types, strings.TrimSpace(parts[0]))
+		}
+	}
+	return types, nil
 }
 
 type FileContext struct {

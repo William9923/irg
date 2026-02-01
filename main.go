@@ -12,8 +12,23 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type arrayFlags []string
+
+func (i *arrayFlags) String() string {
+	return strings.Join(*i, ",")
+}
+
+func (i *arrayFlags) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
 func main() {
 	var caseFlag = flag.String("case", "smart", "Case sensitivity mode: smart, sensitive, insensitive")
+	var typeFlags arrayFlags
+	var typeNotFlags arrayFlags
+	flag.Var(&typeFlags, "type", "Include only files of type (can be used multiple times)")
+	flag.Var(&typeNotFlags, "type-not", "Exclude files of type (can be used multiple times)")
 	flag.Parse()
 
 	if _, err := exec.LookPath("rg"); err != nil {
@@ -37,6 +52,7 @@ func main() {
 
 	model := ui.NewModel()
 	model.SetCaseSensitivity(caseSensitivity)
+	model.SetFileTypes(typeFlags, typeNotFlags)
 
 	p := tea.NewProgram(
 		model,

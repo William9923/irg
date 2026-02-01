@@ -26,11 +26,13 @@ type focusedInput int
 const (
 	focusPattern focusedInput = iota
 	focusPath
+	focusTypes
 )
 
 type Model struct {
 	patternInput textinput.Model
 	pathInput    textinput.Model
+	typesInput   textinput.Model
 	resultsView  viewport.Model
 	previewView  viewport.Model
 	focused      focusedInput
@@ -41,6 +43,16 @@ type Model struct {
 	searchCtx       context.Context
 	searchCancel    context.CancelFunc
 	caseSensitivity search.CaseSensitivity
+
+	fileTypes     []string
+	fileTypesNot  []string
+	lastFileTypes []string
+
+	allTypes          []string // All ripgrep types loaded at startup
+	filteredTypes     []string // Currently filtered types for dropdown
+	dropdownVisible   bool     // Is dropdown open?
+	dropdownIndex     int      // Currently highlighted dropdown item
+	dropdownMaxHeight int      // Max items to show (8)
 
 	highlighter *highlight.Highlighter
 
@@ -105,23 +117,33 @@ func NewModel() Model {
 	pathTi.CharLimit = 256
 	pathTi.Width = 30
 
+	typesTi := textinput.New()
+	typesTi.Placeholder = "Types (e.g., go,rust)"
+	typesTi.CharLimit = 256
+	typesTi.Width = 30
+
 	resultsVp := viewport.New(40, 20)
 	previewVp := viewport.New(40, 20)
 
-	return Model{
-		patternInput:    patternTi,
-		pathInput:       pathTi,
-		resultsView:     resultsVp,
-		previewView:     previewVp,
-		focused:         focusPattern,
-		searcher:        search.NewSearcher(),
-		results:         make([]search.Match, 0),
-		lastPath:        ".",
-		caseSensitivity: search.CaseSmart,
-		highlighter:     highlight.New(true, "monokai"),
-		width:           80, // Default width for help positioning
-		height:          24, // Default height for help positioning
+	m := Model{
+		patternInput:      patternTi,
+		pathInput:         pathTi,
+		typesInput:        typesTi,
+		resultsView:       resultsVp,
+		previewView:       previewVp,
+		focused:           focusPattern,
+		searcher:          search.NewSearcher(),
+		results:           make([]search.Match, 0),
+		lastPath:          ".",
+		caseSensitivity:   search.CaseSmart,
+		highlighter:       highlight.New(true, "monokai"),
+		width:             80, // Default width for help positioning
+		height:            24, // Default height for help positioning
+		dropdownMaxHeight: 8,
 	}
+
+	m.allTypes, _ = search.LoadRipgrepTypes()
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
@@ -148,11 +170,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focused = focusPath
 				m.patternInput.Blur()
 				m.pathInput.Focus()
+			} else if m.focused == focusPath {
+				m.focused = focusTypes
+				m.pathInput.Blur()
+				m.typesInput.Focus()
 			} else {
 				m.focused = focusPattern
-				m.pathInput.Blur()
+				m.typesInput.Blur()
 				m.patternInput.Focus()
 			}
+			m.dropdownVisible = false
 			return m, nil
 
 		case "ctrl+t":
@@ -177,6 +204,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "up", "ctrl+p":
+			if m.dropdownVisible {
+				if m.dropdownIndex > 0 {
+					m.dropdownIndex--
+				} else {
+					m.dropdownIndex = len(m.filteredTypes) - 1
+				}
+				return m, nil
+			}
 			if m.selectedIndex > 0 {
 				m.selectedIndex--
 				m.updateResultsView()
@@ -185,6 +220,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 
 		case "down", "ctrl+n":
+			if m.dropdownVisible {
+				if m.dropdownIndex < len(m.filteredTypes)-1 {
+					m.dropdownIndex++
+				} else {
+					m.dropdownIndex = 0
+				}
+				return m, nil
+			}
 			if m.selectedIndex < len(m.results)-1 {
 				m.selectedIndex++
 				m.updateResultsView()
@@ -193,10 +236,35 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 
 		case "enter":
+			if m.dropdownVisible && len(m.filteredTypes) > 0 {
+				selectedType := m.filteredTypes[m.dropdownIndex]
+				currentVal := m.typesInput.Value()
+				parts := strings.Split(currentVal, ",")
+				if len(parts) > 0 {
+					parts[len(parts)-1] = selectedType
+					newVal := strings.Join(parts, ",") + ","
+					m.typesInput.SetValue(newVal)
+					m.typesInput.SetCursor(len(newVal))
+					m.dropdownVisible = false
+					m.fileTypes = parseTypes(newVal)
+					return m, m.executeSearch(m.patternInput.Value(), m.pathInput.Value())
+				}
+			}
 			if m.selectedIndex < len(m.results) && len(m.results) > 0 {
 				return m, m.openInEditor()
 			}
 			return m, nil
+
+		case "esc":
+			if m.dropdownVisible {
+				m.dropdownVisible = false
+				return m, nil
+			}
+			if m.focused == focusTypes {
+				m.typesInput.SetValue("")
+				m.fileTypes = nil
+				return m, m.executeSearch(m.patternInput.Value(), m.pathInput.Value())
+			}
 
 		case "pgup":
 			m.selectedIndex -= 10
@@ -238,10 +306,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 
-		patternWidth := (msg.Width - 10) * 2 / 3
-		pathWidth := (msg.Width - 10) - patternWidth
+		patternWidth := (msg.Width - 15) / 2
+		pathWidth := (msg.Width - 15) / 4
+		typesWidth := (msg.Width - 15) - patternWidth - pathWidth
 		m.patternInput.Width = patternWidth
 		m.pathInput.Width = pathWidth
+		m.typesInput.Width = typesWidth
 
 		listWidth := msg.Width / 3
 		previewWidth := msg.Width - listWidth - 5
@@ -307,20 +377,58 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	var patternCmd, pathCmd tea.Cmd
+	var patternCmd, pathCmd, typesCmd tea.Cmd
 	m.patternInput, patternCmd = m.patternInput.Update(msg)
 	m.pathInput, pathCmd = m.pathInput.Update(msg)
-	cmds = append(cmds, patternCmd, pathCmd)
+	m.typesInput, typesCmd = m.typesInput.Update(msg)
+	cmds = append(cmds, patternCmd, pathCmd, typesCmd)
 
 	currentPattern := m.patternInput.Value()
 	currentPath := m.pathInput.Value()
 	if currentPath == "" {
 		currentPath = "."
 	}
+	currentTypes := m.typesInput.Value()
 
-	if currentPattern != m.lastPattern || currentPath != m.lastPath {
+	if m.focused == focusTypes && msg != nil {
+		if _, ok := msg.(tea.KeyMsg); ok {
+			parts := strings.Split(currentTypes, ",")
+			lastPart := strings.TrimSpace(parts[len(parts)-1])
+			if lastPart != "" {
+				m.filteredTypes = nil
+				for _, t := range m.allTypes {
+					if strings.HasPrefix(t, lastPart) {
+						m.filteredTypes = append(m.filteredTypes, t)
+					}
+				}
+				m.dropdownVisible = len(m.filteredTypes) > 0
+				if m.dropdownIndex >= len(m.filteredTypes) {
+					m.dropdownIndex = 0
+				}
+			} else {
+				m.dropdownVisible = false
+			}
+		}
+	}
+
+	newFileTypes := parseTypes(currentTypes)
+	typesChanged := false
+	if len(newFileTypes) != len(m.lastFileTypes) {
+		typesChanged = true
+	} else {
+		for i := range newFileTypes {
+			if newFileTypes[i] != m.lastFileTypes[i] {
+				typesChanged = true
+				break
+			}
+		}
+	}
+
+	if currentPattern != m.lastPattern || currentPath != m.lastPath || typesChanged {
 		m.lastPattern = currentPattern
 		m.lastPath = currentPath
+		m.lastFileTypes = newFileTypes
+		m.fileTypes = newFileTypes
 		m.debounceToken++
 		token := m.debounceToken
 
@@ -401,7 +509,7 @@ func (m *Model) executeSearch(pattern, path string) tea.Cmd {
 	return func() tea.Msg {
 		results := make(chan search.Match, 100)
 
-		err := m.searcher.Search(m.searchCtx, pattern, path, m.caseSensitivity, results)
+		err := m.searcher.Search(m.searchCtx, pattern, path, m.caseSensitivity, m.fileTypes, m.fileTypesNot, results)
 		if err != nil {
 			return searchErrorMsg{err: err}
 		}
@@ -433,6 +541,29 @@ func (m *Model) executeSearch(pattern, path string) tea.Cmd {
 			}
 		}
 	}
+}
+
+func (m *Model) SetFileTypes(types, typesNot []string) {
+	m.fileTypes = types
+	m.fileTypesNot = typesNot
+	if len(types) > 0 {
+		m.typesInput.SetValue(strings.Join(types, ",") + ",")
+	}
+}
+
+func parseTypes(input string) []string {
+	if input == "" {
+		return nil
+	}
+	parts := strings.Split(input, ",")
+	var types []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			types = append(types, p)
+		}
+	}
+	return types
 }
 
 // highlightMatches applies highlighting to matched text using submatch positions
@@ -655,13 +786,19 @@ func (m Model) View() string {
 		previewStyle.Render(m.previewView.View()),
 	)
 
-	var patternBox, pathBox string
+	var patternBox, pathBox, typesBox string
 	if m.focused == focusPattern {
 		patternBox = activeInputStyle.Render(m.patternInput.View())
 		pathBox = inactiveInputStyle.Render(m.pathInput.View())
-	} else {
+		typesBox = inactiveInputStyle.Render(m.typesInput.View())
+	} else if m.focused == focusPath {
 		patternBox = inactiveInputStyle.Render(m.patternInput.View())
 		pathBox = activeInputStyle.Render(m.pathInput.View())
+		typesBox = inactiveInputStyle.Render(m.typesInput.View())
+	} else {
+		patternBox = inactiveInputStyle.Render(m.patternInput.View())
+		pathBox = inactiveInputStyle.Render(m.pathInput.View())
+		typesBox = activeInputStyle.Render(m.typesInput.View())
 	}
 
 	var status string
@@ -674,14 +811,74 @@ func (m Model) View() string {
 		if pathInfo == "." {
 			pathInfo = "current directory"
 		}
+		typeInfo := ""
+		if len(m.fileTypes) > 0 {
+			typeInfo = fmt.Sprintf(" [📁 %s]", strings.Join(m.fileTypes, ","))
+		}
 		status = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(
-			fmt.Sprintf("%d matches in %s (%s)",
-				m.matchCount, pathInfo, m.searchTime.Round(time.Millisecond)))
+			fmt.Sprintf("%d matches in %s%s (%s)",
+				m.matchCount, pathInfo, typeInfo, m.searchTime.Round(time.Millisecond)))
 	} else if m.lastPattern != "" {
 		status = "No matches"
 	}
 
-	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, patternBox, " ", pathBox, "  ", statusStyle.Render(status))
+	inputRow := lipgloss.JoinHorizontal(lipgloss.Top, patternBox, " ", pathBox, " ", typesBox, "  ", statusStyle.Render(status))
+
+	var dropdown string
+	if m.dropdownVisible {
+		dropdownStyle := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("62")).
+			Background(lipgloss.Color("235")).
+			Padding(0, 1).
+			Width(m.typesInput.Width + 2)
+
+		var ds strings.Builder
+		start := 0
+		if m.dropdownIndex >= m.dropdownMaxHeight {
+			start = m.dropdownIndex - m.dropdownMaxHeight + 1
+		}
+		end := start + m.dropdownMaxHeight
+		if end > len(m.filteredTypes) {
+			end = len(m.filteredTypes)
+		}
+
+		for i := start; i < end; i++ {
+			t := m.filteredTypes[i]
+			selected := i == m.dropdownIndex
+			isSelected := false
+			for _, ft := range m.fileTypes {
+				if ft == t {
+					isSelected = true
+					break
+				}
+			}
+
+			prefix := "  "
+			if selected {
+				prefix = "> "
+			}
+
+			suffix := ""
+			if isSelected {
+				suffix = " [✓]"
+			}
+
+			line := prefix + t + suffix
+			if selected {
+				ds.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(line))
+			} else {
+				ds.WriteString(line)
+			}
+			ds.WriteString("\n")
+		}
+
+		if len(m.filteredTypes) > m.dropdownMaxHeight {
+			ds.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(fmt.Sprintf("  [ %d/%d ]", m.dropdownIndex+1, len(m.filteredTypes))))
+		}
+
+		dropdown = dropdownStyle.Render(ds.String())
+	}
 
 	var helpText string
 	if len(m.results) > 0 {
@@ -702,6 +899,12 @@ func (m Model) View() string {
 	}
 
 	view := lipgloss.JoinVertical(lipgloss.Left, viewComponents...)
+
+	if m.dropdownVisible {
+		// Append dropdown to help text area if it fits, or just render it below
+		// In a real TUI, we'd use relative positioning.
+		return lipgloss.JoinVertical(lipgloss.Left, view, dropdown)
+	}
 
 	return view
 }
