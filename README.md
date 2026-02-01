@@ -16,21 +16,21 @@ A terminal UI for interactive grep search with real-time results and live file p
 │ irg - Interactive Ripgrep                                               │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ Pattern: func.*Error                         │ Path:                    │
-│                                             │                          │
-├─────────────────────────────────────────────┼──────────────────────────┤
-│ [1] main.go:45                              │ 43: // validateInput     │
-│     func validateInput() error {            │ 44: // checks if the     │ 
-│                                             │ 45: func validateInput() │
-│ [2] search/ripgrep.go:123                   │ >>> error {              │
-│     func parseError(data []byte) error {    │ 46:   if input == "" {   │
-│                                             │ 47:     return fmt.Error │
-│ [3] ui/model.go:234                         │                          │
-│     func handleKeyError() tea.Model {       │                          │
-│                                             │                          │
-│ [4] internal/search/ripgrep.go:89           │                          │
-│     func streamResultsWithError() error {   │                          │
-├─────────────────────────────────────────────┼──────────────────────────┤
-│ 🔍 Smart Case • ↑↓ Navigate • Tab Switch • Ctrl+T Toggle • Enter Open  │
+│                                             │                           │
+├─────────────────────────────────────────────┼───────────────────────────┤
+│ [1] main.go:45                              │ 43: // validateInput      │
+│     func validateInput() error {            │ 44: // checks if the      │ 
+│                                             │ 45: func validateInput()  │
+│ [2] search/ripgrep.go:123                   │ >>> error {               │
+│     func parseError(data []byte) error {    │ 46:   if input == "" {    │
+│                                             │ 47:     return fmt.Error  │
+│ [3] ui/model.go:234                         │                           │
+│     func handleKeyError() tea.Model {       │                           │
+│                                             │                           │
+│ [4] internal/search/ripgrep.go:89           │                           │
+│     func streamResultsWithError() error {   │                           │
+├─────────────────────────────────────────────┼───────────────────────────┤
+│ 🔍 Smart Case • ↑↓ Navigate • Tab Switch • Ctrl+T Toggle • Enter Open   │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -52,7 +52,8 @@ A terminal UI for interactive grep search with real-time results and live file p
 ### 🎨 User Interface  
 - **Split-pane design**: Results list (left) + file preview (right)
 - **Context preview**: Shows 5 lines above and below each match
-- **Match highlighting** in the preview pane for easy identification
+- **Syntax highlighting**: Automatic language detection and syntax highlighting in preview pane
+- **Match highlighting**: Visual emphasis on matching lines in the preview
 - **Dual input fields**: Separate pattern and path scoping
 - **Status indicators**: Current search mode and available shortcuts
 
@@ -299,6 +300,8 @@ irg is built on a clean separation of concerns:
 - **main.go**: Entry point that validates ripgrep installation and launches the Bubble Tea program
 - **internal/search/ripgrep.go**: Wraps ripgrep with JSON output parsing and streaming result delivery
 - **internal/ui/model.go**: Bubble Tea Model implementing the TUI with debouncing, dual inputs, and split viewports
+- **internal/highlight/**: Syntax highlighting engine with automatic language detection
+- **internal/editor/**: External editor integration supporting vim, VS Code, and more
 
 ### Key Design Decisions
 
@@ -313,19 +316,22 @@ irg is built on a clean separation of concerns:
 ## 🚀 Roadmap
 
 ### v0.1.0 - Enhanced Search
+- [x] Syntax highlighting in preview (✅ Implemented)
+- [x] Editor integration with line number support (✅ Implemented)
 - [ ] Regex/literal mode toggle
 - [ ] File type filtering (--type flag)
-- [ ] Match highlighting within lines
 - [ ] Improved error handling
 
 ### v0.2.0 - User Experience  
-- [ ] Configuration file support
+- [ ] Configuration file support for themes and settings
 - [ ] Search history persistence
-- [ ] Syntax highlighting in preview
 - [ ] Custom key bindings
+- [ ] Toggle syntax highlighting on/off
+- [ ] Multiple theme support
 
 ### v1.0.0 - Stable Release
-- [ ] Comprehensive test suite
+- [x] Basic test suite (✅ Implemented for highlight package)
+- [ ] Comprehensive test coverage for all packages
 - [ ] Performance optimizations
 - [ ] Plugin system
 - [ ] Advanced filtering options
@@ -337,6 +343,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 - **github.com/charmbracelet/bubbletea** (v1.2.4): Framework for building terminal user interfaces
 - **github.com/charmbracelet/bubbles** (v0.20.0): Component library for Bubble Tea (textinput, viewport)
 - **github.com/charmbracelet/lipgloss** (v1.0.0): Styling library for terminal UI
+- **github.com/alecthomas/chroma/v2** (v2.23.1): Syntax highlighting engine
 
 ## Contributing
 
