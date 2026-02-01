@@ -242,7 +242,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				parts := strings.Split(currentVal, ",")
 				if len(parts) > 0 {
 					parts[len(parts)-1] = selectedType
-					newVal := strings.Join(parts, ",") + ","
+					newVal := strings.Join(parts, ",")
 					m.typesInput.SetValue(newVal)
 					m.typesInput.SetCursor(len(newVal))
 					m.dropdownVisible = false
@@ -547,7 +547,7 @@ func (m *Model) SetFileTypes(types, typesNot []string) {
 	m.fileTypes = types
 	m.fileTypesNot = typesNot
 	if len(types) > 0 {
-		m.typesInput.SetValue(strings.Join(types, ",") + ",")
+		m.typesInput.SetValue(strings.Join(types, ","))
 	}
 }
 
