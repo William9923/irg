@@ -527,7 +527,23 @@ func (m *Model) updateResultsView() {
 
 	if m.selectedIndex >= 0 && len(m.results) > 0 {
 		targetLine := m.selectedIndex
-		m.resultsView.SetYOffset(targetLine - m.resultsView.Height/2)
+		centerOffset := targetLine - m.resultsView.Height/2
+
+		// Calculate the maximum valid offset to prevent scrolling past content
+		// Content has len(m.results) lines, viewport shows Height lines
+		// Maximum offset is when the last line is at the bottom of the viewport
+		maxOffset := len(m.results) - m.resultsView.Height
+
+		// Clamp the offset to valid range [0, maxOffset]
+		offset := centerOffset
+		if offset < 0 {
+			offset = 0
+		}
+		if maxOffset > 0 && offset > maxOffset {
+			offset = maxOffset
+		}
+
+		m.resultsView.SetYOffset(offset)
 	}
 }
 
