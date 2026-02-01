@@ -332,7 +332,34 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.MouseMsg:
-		// Handle mouse wheel events for viewport scrolling
+		// Handle mouse wheel events by updating selectedIndex instead of letting
+		// the viewport handle scrolling directly. This ensures scroll position
+		// stays synchronized with the selected item through updateResultsView().
+		switch msg.Button {
+		case tea.MouseButtonWheelUp:
+			// Scroll up by 3 lines (default mouse wheel delta)
+			m.selectedIndex -= 3
+			if m.selectedIndex < 0 {
+				m.selectedIndex = 0
+			}
+			m.updateResultsView()
+			cmds = append(cmds, m.loadPreview())
+			return m, tea.Batch(cmds...)
+
+		case tea.MouseButtonWheelDown:
+			// Scroll down by 3 lines (default mouse wheel delta)
+			m.selectedIndex += 3
+			if m.selectedIndex >= len(m.results) {
+				m.selectedIndex = len(m.results) - 1
+			}
+			if m.selectedIndex < 0 {
+				m.selectedIndex = 0
+			}
+			m.updateResultsView()
+			cmds = append(cmds, m.loadPreview())
+			return m, tea.Batch(cmds...)
+		}
+		// For other mouse events (clicks, etc.), let viewport handle them
 		var cmd tea.Cmd
 		m.resultsView, cmd = m.resultsView.Update(msg)
 		if cmd != nil {
