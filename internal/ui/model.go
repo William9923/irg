@@ -150,6 +150,26 @@ func (m Model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+// calculateViewportHeight returns the correct viewport height based on dropdown visibility
+// Base height calculation: windowHeight - 7 (for input row + help text + borders)
+// When dropdown is visible: subtract additional space for dropdown (11 lines for 8 items + borders)
+func (m *Model) calculateViewportHeight() int {
+	baseHeight := m.height - 7
+	if m.dropdownVisible {
+		// Dropdown takes ~11 lines: 8 items + borders + padding + counter
+		dropdownHeight := 11
+		if len(m.filteredTypes) < m.dropdownMaxHeight {
+			// If fewer items, dropdown is smaller: items + 3 for borders/padding
+			dropdownHeight = len(m.filteredTypes) + 3
+		}
+		baseHeight -= dropdownHeight
+	}
+	if baseHeight < 5 {
+		baseHeight = 5 // Minimum viable height
+	}
+	return baseHeight
+}
+
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
@@ -166,6 +186,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "tab":
+			wasDropdownVisible := m.dropdownVisible
 			if m.focused == focusPattern {
 				m.focused = focusPath
 				m.patternInput.Blur()
@@ -180,6 +201,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.patternInput.Focus()
 			}
 			m.dropdownVisible = false
+			// Update viewport heights when dropdown visibility changes
+			if wasDropdownVisible {
+				viewportHeight := m.calculateViewportHeight()
+				m.resultsView.Height = viewportHeight
+				m.previewView.Height = viewportHeight
+				m.updateResultsView()
+			}
 			return m, nil
 
 		case "ctrl+t":
@@ -246,6 +274,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.typesInput.SetValue(newVal)
 					m.typesInput.SetCursor(len(newVal))
 					m.dropdownVisible = false
+					// Update viewport heights when dropdown is closed
+					viewportHeight := m.calculateViewportHeight()
+					m.resultsView.Height = viewportHeight
+					m.previewView.Height = viewportHeight
+					m.updateResultsView()
 					m.fileTypes = parseTypes(newVal)
 					return m, m.executeSearch(m.patternInput.Value(), m.pathInput.Value())
 				}
@@ -258,6 +291,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			if m.dropdownVisible {
 				m.dropdownVisible = false
+				// Update viewport heights when dropdown is closed
+				viewportHeight := m.calculateViewportHeight()
+				m.resultsView.Height = viewportHeight
+				m.previewView.Height = viewportHeight
+				m.updateResultsView()
 				return m, nil
 			}
 			if m.focused == focusTypes {
@@ -316,10 +354,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		listWidth := msg.Width / 3
 		previewWidth := msg.Width - listWidth - 5
 
+		viewportHeight := m.calculateViewportHeight()
 		m.resultsView.Width = listWidth
-		m.resultsView.Height = msg.Height - 7 // Account for input row + help text
+		m.resultsView.Height = viewportHeight
 		m.previewView.Width = previewWidth
-		m.previewView.Height = msg.Height - 7 // Account for input row + help text
+		m.previewView.Height = viewportHeight
 
 		m.updateResultsView()
 		m.updatePreviewView()
@@ -392,6 +431,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.focused == focusTypes && msg != nil {
 		if _, ok := msg.(tea.KeyMsg); ok {
+			wasDropdownVisible := m.dropdownVisible
 			parts := strings.Split(currentTypes, ",")
 			lastPart := strings.TrimSpace(parts[len(parts)-1])
 			if lastPart != "" {
@@ -407,6 +447,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else {
 				m.dropdownVisible = false
+			}
+			// Update viewport heights when dropdown visibility changes
+			if wasDropdownVisible != m.dropdownVisible {
+				viewportHeight := m.calculateViewportHeight()
+				m.resultsView.Height = viewportHeight
+				m.previewView.Height = viewportHeight
+				m.updateResultsView()
 			}
 		}
 	}
@@ -755,17 +802,18 @@ func (m *Model) getSyntaxHighlightingStatus() string {
 }
 
 func (m Model) View() string {
+	viewportHeight := m.calculateViewportHeight()
 	resultsStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("240")).
 		Width(m.width / 3).
-		Height(m.height - 7) // Account for input row + help text
+		Height(viewportHeight)
 
 	previewStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("240")).
 		Width(m.width - m.width/3 - 5).
-		Height(m.height - 7) // Account for input row + help text
+		Height(viewportHeight)
 
 	activeInputStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
