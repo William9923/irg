@@ -740,12 +740,19 @@ func (m *Model) updateResultsView() {
 		maxOffset := len(m.results) - m.resultsView.Height
 
 		// Clamp the offset to valid range [0, maxOffset]
+		// Similar to Telescope in Neovim: ensure last item is always visible
 		offset := centerOffset
 		if offset < 0 {
 			offset = 0
 		}
-		if maxOffset > 0 && offset > maxOffset {
-			offset = maxOffset
+		// If maxOffset <= 0, all content fits in viewport, so offset should be 0
+		// Otherwise, clamp to maxOffset to ensure we don't scroll past the end
+		if offset > maxOffset {
+			if maxOffset < 0 {
+				offset = 0
+			} else {
+				offset = maxOffset
+			}
 		}
 
 		m.resultsView.SetYOffset(offset)
