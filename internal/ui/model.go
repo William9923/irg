@@ -225,6 +225,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.ctrlCPressed = false
 		}
 
+	case tea.MouseMsg:
+		// Handle mouse wheel events for viewport scrolling
+		var cmd tea.Cmd
+		m.resultsView, cmd = m.resultsView.Update(msg)
+		if cmd != nil {
+			cmds = append(cmds, cmd)
+		}
+		return m, tea.Batch(cmds...)
+
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
