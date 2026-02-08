@@ -82,9 +82,6 @@ func (s *Searcher) Search(ctx context.Context, pattern, path string, caseSensiti
 		args = append(args, "--type-not", t)
 	}
 
-	args = append(args, "--")
-	args = append(args, pattern)
-
 	// Add case sensitivity flag based on mode
 	switch caseSensitivity {
 	case CaseSmart:
@@ -94,6 +91,9 @@ func (s *Searcher) Search(ctx context.Context, pattern, path string, caseSensiti
 	case CaseInsensitive:
 		args = append(args, "--ignore-case")
 	}
+
+	args = append(args, "--")
+	args = append(args, pattern)
 
 	if path != "" {
 		args = append(args, path)

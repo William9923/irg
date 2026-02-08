@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Path Autocomplete**: Smart dropdown suggestions for path scoping
+  - Ranked matching (exact > prefix > filename > boundary > substring)
+  - Real-time suggestions with visual distinction (📁 directories vs 📄 files)
+  - Keyboard navigation (Up/Down, Enter to select, Esc to close)
+  - Performance optimized with cached scanning (30s TTL) and max depth limits
+  - Automatically skips `node_modules`, `vendor`, `.git`, and hidden files
+
 ### Planned
 - Regex/literal toggle - Switch between regex and fixed-string mode
 - File type filters - Filter by extension using ripgrep's --type flag
@@ -32,11 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Built with Charm's Bubble Tea framework for elegant TUI
 
 ### Key Bindings
-- **Tab**: Switch between pattern and path input
-- **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate results
+- **Tab**: Cycle between pattern, path, and type filter inputs
+- **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate results (or dropdown when visible)
 - **PgUp/PgDn**: Jump 10 results at a time
 - **Ctrl+T**: Toggle case sensitivity mode
-- **Enter**: Open selected result in default editor
+- **Enter**: Open selected result in default editor (or select from dropdown)
+- **Esc**: Close dropdown or clear type input
 - **Ctrl+C**: Quit
 
 ### Requirements

@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -53,6 +54,14 @@ type Model struct {
 	dropdownVisible   bool     // Is dropdown open?
 	dropdownIndex     int      // Currently highlighted dropdown item
 	dropdownMaxHeight int      // Max items to show (8)
+
+	// Path dropdown state
+	allPaths            []PathEntry
+	filteredPaths       []PathEntry
+	pathDropdownVisible bool
+	pathDropdownIndex   int
+	pathProvider        *PathProvider
+	pathsLoaded         bool
 
 	highlighter *highlight.Highlighter
 
@@ -105,6 +114,10 @@ type editorFinishedMsg struct {
 	err error
 }
 
+type pathsLoadedMsg struct {
+	paths []PathEntry
+}
+
 func NewModel() Model {
 	patternTi := textinput.New()
 	patternTi.Placeholder = "Search pattern..."
@@ -125,6 +138,8 @@ func NewModel() Model {
 	resultsVp := viewport.New(40, 20)
 	previewVp := viewport.New(40, 20)
 
+	pathProvider := NewPathProvider(".")
+
 	m := Model{
 		patternInput:      patternTi,
 		pathInput:         pathTi,
@@ -140,6 +155,7 @@ func NewModel() Model {
 		width:             80, // Default width for help positioning
 		height:            24, // Default height for help positioning
 		dropdownMaxHeight: 8,
+		pathProvider:      pathProvider,
 	}
 
 	m.allTypes, _ = search.LoadRipgrepTypes()
@@ -147,7 +163,17 @@ func NewModel() Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink
+	return tea.Batch(
+		textinput.Blink,
+		m.loadPathsAsync(),
+	)
+}
+
+func (m *Model) loadPathsAsync() tea.Cmd {
+	return func() tea.Msg {
+		paths := m.pathProvider.LoadPaths()
+		return pathsLoadedMsg{paths: paths}
+	}
 }
 
 // calculateViewportHeight returns the correct viewport height based on dropdown visibility
@@ -161,6 +187,13 @@ func (m *Model) calculateViewportHeight() int {
 		if len(m.filteredTypes) < m.dropdownMaxHeight {
 			// If fewer items, dropdown is smaller: items + 3 for borders/padding
 			dropdownHeight = len(m.filteredTypes) + 3
+		}
+		baseHeight -= dropdownHeight
+	}
+	if m.pathDropdownVisible {
+		dropdownHeight := 11
+		if len(m.filteredPaths) < pathDropdownMaxHeight {
+			dropdownHeight = len(m.filteredPaths) + 3
 		}
 		baseHeight -= dropdownHeight
 	}
@@ -187,6 +220,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "tab":
 			wasDropdownVisible := m.dropdownVisible
+			wasPathDropdownVisible := m.pathDropdownVisible
 			if m.focused == focusPattern {
 				m.focused = focusPath
 				m.patternInput.Blur()
@@ -201,8 +235,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.patternInput.Focus()
 			}
 			m.dropdownVisible = false
+			m.pathDropdownVisible = false
 			// Update viewport heights when dropdown visibility changes
-			if wasDropdownVisible {
+			if wasDropdownVisible || wasPathDropdownVisible {
 				viewportHeight := m.calculateViewportHeight()
 				m.resultsView.Height = viewportHeight
 				m.previewView.Height = viewportHeight
@@ -232,6 +267,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "up", "ctrl+p":
+			if m.focused == focusPath && m.pathDropdownVisible {
+				if m.pathDropdownIndex > 0 {
+					m.pathDropdownIndex--
+				} else {
+					m.pathDropdownIndex = len(m.filteredPaths) - 1
+				}
+				return m, nil
+			}
 			if m.dropdownVisible {
 				if m.dropdownIndex > 0 {
 					m.dropdownIndex--
@@ -248,6 +291,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 
 		case "down", "ctrl+n":
+			if m.focused == focusPath && m.pathDropdownVisible {
+				if m.pathDropdownIndex < len(m.filteredPaths)-1 {
+					m.pathDropdownIndex++
+				} else {
+					m.pathDropdownIndex = 0
+				}
+				return m, nil
+			}
 			if m.dropdownVisible {
 				if m.dropdownIndex < len(m.filteredTypes)-1 {
 					m.dropdownIndex++
@@ -264,6 +315,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(cmds...)
 
 		case "enter":
+			if m.focused == focusPath && m.pathDropdownVisible && len(m.filteredPaths) > 0 {
+				selectedPath := m.filteredPaths[m.pathDropdownIndex].Path
+				m.pathInput.SetValue(selectedPath)
+				m.pathInput.SetCursor(len(selectedPath))
+				m.pathDropdownVisible = false
+				viewportHeight := m.calculateViewportHeight()
+				m.resultsView.Height = viewportHeight
+				m.previewView.Height = viewportHeight
+				m.updateResultsView()
+				pattern := m.patternInput.Value()
+				if pattern != "" {
+					return m, m.executeSearch(pattern, selectedPath)
+				}
+				return m, nil
+			}
 			if m.dropdownVisible && len(m.filteredTypes) > 0 {
 				selectedType := m.filteredTypes[m.dropdownIndex]
 				currentVal := m.typesInput.Value()
@@ -289,6 +355,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "esc":
+			if m.pathDropdownVisible {
+				m.pathDropdownVisible = false
+				viewportHeight := m.calculateViewportHeight()
+				m.resultsView.Height = viewportHeight
+				m.previewView.Height = viewportHeight
+				m.updateResultsView()
+				return m, nil
+			}
 			if m.dropdownVisible {
 				m.dropdownVisible = false
 				// Update viewport heights when dropdown is closed
@@ -441,6 +515,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.updatePreviewView()
 		}
 		return m, nil
+
+	case pathsLoadedMsg:
+		m.allPaths = msg.paths
+		m.pathsLoaded = true
+		return m, nil
 	}
 
 	var patternCmd, pathCmd, typesCmd tea.Cmd
@@ -477,6 +556,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			// Update viewport heights when dropdown visibility changes
 			if wasDropdownVisible != m.dropdownVisible {
+				viewportHeight := m.calculateViewportHeight()
+				m.resultsView.Height = viewportHeight
+				m.previewView.Height = viewportHeight
+				m.updateResultsView()
+			}
+		}
+	}
+
+	if m.focused == focusPath && msg != nil && m.pathsLoaded {
+		if _, ok := msg.(tea.KeyMsg); ok {
+			wasPathDropdownVisible := m.pathDropdownVisible
+			currentPath := m.pathInput.Value()
+			m.filteredPaths = m.pathProvider.FilterPaths(currentPath, m.allPaths)
+			m.pathDropdownVisible = len(m.filteredPaths) > 0
+			if m.pathDropdownIndex >= len(m.filteredPaths) {
+				m.pathDropdownIndex = 0
+			}
+			if wasPathDropdownVisible != m.pathDropdownVisible {
 				viewportHeight := m.calculateViewportHeight()
 				m.resultsView.Height = viewportHeight
 				m.previewView.Height = viewportHeight
@@ -568,6 +665,11 @@ func (m *Model) loadPreview() tea.Cmd {
 }
 
 func (m *Model) executeSearch(pattern, path string) tea.Cmd {
+	// Cancel any existing search before starting a new one
+	if m.searchCancel != nil {
+		m.searchCancel()
+	}
+
 	m.results = m.results[:0]
 	m.selectedIndex = 0
 	m.matchCount = 0
@@ -897,9 +999,19 @@ func (m Model) View() string {
 		if len(m.fileTypes) > 0 {
 			typeInfo = fmt.Sprintf(" [📁 %s]", strings.Join(m.fileTypes, ","))
 		}
-		status = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(
-			fmt.Sprintf("%d matches in %s%s (%s)",
-				m.matchCount, pathInfo, typeInfo, m.searchTime.Round(time.Millisecond)))
+
+		statusParts := []string{fmt.Sprintf("%d matches in %s%s (%s)",
+			m.matchCount, pathInfo, typeInfo, m.searchTime.Round(time.Millisecond))}
+
+		if len(m.fileTypes) > 0 && m.lastPath != "" && m.lastPath != "." {
+			// Check if path looks like a specific file (has extension, not ending with /)
+			if strings.Contains(filepath.Base(m.lastPath), ".") && !strings.HasSuffix(m.lastPath, "/") {
+				// Path is likely a specific file - type filter may not apply
+				statusParts = append(statusParts, "ℹ️  Type filter overridden by file path")
+			}
+		}
+
+		status = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(strings.Join(statusParts, " "))
 	} else if m.lastPattern != "" {
 		status = "No matches"
 	}
@@ -965,10 +1077,10 @@ func (m Model) View() string {
 	var helpText string
 	if len(m.results) > 0 {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit)")
+			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit) | Tip: Specific file paths take precedence over type filters")
 	} else {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit)")
+			"Keys: Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit) | Tip: Specific file paths take precedence over type filters")
 	}
 	if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(
@@ -986,6 +1098,53 @@ func (m Model) View() string {
 		// Append dropdown to help text area if it fits, or just render it below
 		// In a real TUI, we'd use relative positioning.
 		return lipgloss.JoinVertical(lipgloss.Left, view, dropdown)
+	}
+
+	if m.pathDropdownVisible {
+		dropdownStyle := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("62")).
+			Background(lipgloss.Color("235")).
+			Padding(0, 1).
+			Width(m.pathInput.Width + 2)
+
+		var ds strings.Builder
+		start := 0
+		if m.pathDropdownIndex >= pathDropdownMaxHeight {
+			start = m.pathDropdownIndex - pathDropdownMaxHeight + 1
+		}
+		end := start + pathDropdownMaxHeight
+		if end > len(m.filteredPaths) {
+			end = len(m.filteredPaths)
+		}
+
+		for i := start; i < end; i++ {
+			p := m.filteredPaths[i]
+			selected := i == m.pathDropdownIndex
+			icon := "📄"
+			if p.IsDir {
+				icon = "📁"
+			}
+
+			prefix := "  "
+			if selected {
+				prefix = "> "
+			}
+
+			line := prefix + icon + " " + p.Path
+			if selected {
+				ds.WriteString(lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12")).Render(line))
+			} else {
+				ds.WriteString(line)
+			}
+			ds.WriteString("\n")
+		}
+
+		if len(m.filteredPaths) > pathDropdownMaxHeight {
+			ds.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(fmt.Sprintf("  [ %d/%d ]", m.pathDropdownIndex+1, len(m.filteredPaths))))
+		}
+
+		return lipgloss.JoinVertical(lipgloss.Left, view, dropdownStyle.Render(ds.String()))
 	}
 
 	return view
