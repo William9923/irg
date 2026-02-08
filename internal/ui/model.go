@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -664,6 +665,11 @@ func (m *Model) loadPreview() tea.Cmd {
 }
 
 func (m *Model) executeSearch(pattern, path string) tea.Cmd {
+	// Cancel any existing search before starting a new one
+	if m.searchCancel != nil {
+		m.searchCancel()
+	}
+
 	m.results = m.results[:0]
 	m.selectedIndex = 0
 	m.matchCount = 0
@@ -993,9 +999,19 @@ func (m Model) View() string {
 		if len(m.fileTypes) > 0 {
 			typeInfo = fmt.Sprintf(" [📁 %s]", strings.Join(m.fileTypes, ","))
 		}
-		status = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(
-			fmt.Sprintf("%d matches in %s%s (%s)",
-				m.matchCount, pathInfo, typeInfo, m.searchTime.Round(time.Millisecond)))
+
+		statusParts := []string{fmt.Sprintf("%d matches in %s%s (%s)",
+			m.matchCount, pathInfo, typeInfo, m.searchTime.Round(time.Millisecond))}
+
+		if len(m.fileTypes) > 0 && m.lastPath != "" && m.lastPath != "." {
+			// Check if path looks like a specific file (has extension, not ending with /)
+			if strings.Contains(filepath.Base(m.lastPath), ".") && !strings.HasSuffix(m.lastPath, "/") {
+				// Path is likely a specific file - type filter may not apply
+				statusParts = append(statusParts, "ℹ️  Type filter overridden by file path")
+			}
+		}
+
+		status = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render(strings.Join(statusParts, " "))
 	} else if m.lastPattern != "" {
 		status = "No matches"
 	}
@@ -1061,10 +1077,10 @@ func (m Model) View() string {
 	var helpText string
 	if len(m.results) > 0 {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit)")
+			"Keys: ↑/↓ or Ctrl+P/N (navigate) | Enter (open in editor) | Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit) | Tip: Specific file paths take precedence over type filters")
 	} else {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-			"Keys: Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit)")
+			"Keys: Tab (switch input) | Ctrl+T (case: " + m.getCaseSensitivityName() + ") | Ctrl+H (syntax: " + m.getSyntaxHighlightingStatus() + ") | Ctrl+C twice (quit) | Tip: Specific file paths take precedence over type filters")
 	}
 	if m.ctrlCPressed && time.Since(m.lastCtrlCTime) < 2*time.Second {
 		helpText = lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Render(
