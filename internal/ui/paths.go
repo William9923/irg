@@ -62,7 +62,7 @@ func (p *PathProvider) LoadPaths() []PathEntry {
 }
 
 func (p *PathProvider) walkDirectory(root string, depth int, paths *[]PathEntry) {
-	if depth > pathMaxDepth {
+	if depth >= pathMaxDepth {
 		return
 	}
 
@@ -122,8 +122,9 @@ func (p *PathProvider) FilterPaths(input string, allPaths []PathEntry) []PathEnt
 }
 
 func scorePathMatch(input, path string) int {
-	input = strings.ToLower(input)
-	pathLower := strings.ToLower(path)
+	// Normalize to forward slashes for consistent matching across platforms
+	input = strings.ToLower(filepath.ToSlash(input))
+	pathLower := strings.ToLower(filepath.ToSlash(path))
 
 	if input == pathLower {
 		return 2000
