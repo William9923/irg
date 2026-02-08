@@ -11,35 +11,14 @@ A terminal UI for interactive grep search with real-time results and live file p
 
 ## 🎬 Demo
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│ irg - Interactive Ripgrep                                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│ Pattern: func.*Error                         │ Path:                    │
-│                                             │                           │
-├─────────────────────────────────────────────┼───────────────────────────┤
-│ [1] main.go:45                              │ 43: // validateInput      │
-│     func validateInput() error {            │ 44: // checks if the      │ 
-│                                             │ 45: func validateInput()  │
-│ [2] search/ripgrep.go:123                   │ >>> error {               │
-│     func parseError(data []byte) error {    │ 46:   if input == "" {    │
-│                                             │ 47:     return fmt.Error  │
-│ [3] ui/model.go:234                         │                           │
-│     func handleKeyError() tea.Model {       │                           │
-│                                             │                           │
-│ [4] internal/search/ripgrep.go:89           │                           │
-│     func streamResultsWithError() error {   │                           │
-├─────────────────────────────────────────────┼───────────────────────────┤
-│ 🔍 Smart Case • ↑↓ Navigate • Tab Switch • Ctrl+T Toggle • Enter Open   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+[![asciicast](https://asciinema.org/a/Yg9GzmIlyE8t16t7.svg)](https://asciinema.org/a/Yg9GzmIlyE8t16t7)
 
 **Key Features Demonstrated:**
-- **Left pane**: Real-time search results with file paths and line numbers
-- **Right pane**: File context showing 5 lines around the match  
-- **Highlighted match**: The actual matching line is visually emphasized
-- **Status bar**: Shows current search mode and available keybindings
-- **Dual inputs**: Separate fields for pattern and optional path scoping
+- **Real-time search**: Results appear as you type with intelligent debouncing
+- **Split-pane interface**: Results list (left) with file preview (right)
+- **Syntax highlighting**: Automatic language detection in preview pane
+- **Multiple input fields**: Pattern, path scoping, and file type filtering
+- **Interactive navigation**: Keyboard-driven workflow with instant feedback
 
 ## ✨ Features
 
