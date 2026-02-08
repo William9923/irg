@@ -54,7 +54,8 @@ A terminal UI for interactive grep search with real-time results and live file p
 - **Context preview**: Shows 5 lines above and below each match
 - **Syntax highlighting**: Automatic language detection and syntax highlighting in preview pane
 - **Match highlighting**: Visual emphasis on matching lines in the preview
-- **Dual input fields**: Separate pattern and path scoping
+- **Path autocomplete**: Smart dropdown suggestions for path scoping with ranked matching
+- **Dual input fields**: Separate pattern and path scoping with autocomplete support
 - **Status indicators**: Current search mode and available shortcuts
 
 ### 🔧 Smart Search Features
@@ -197,7 +198,7 @@ irg --type=go --type=rust "func" # Search only in Go and Rust files
 
 - **Tab**: Cycle between pattern input, path input, and type filter
 - **Up/Down** or **Ctrl+P/Ctrl+N**: Navigate through results (or dropdown when visible)
-- **Enter**: Open selected result in your default editor (or select from dropdown when visible)
+- **Enter**: Open selected result in your default editor (or select suggestion from dropdown when visible)
 - **PgUp/PgDn**: Jump 10 results at a time
 - **Ctrl+T**: Toggle case sensitivity mode (Smart → Sensitive → Insensitive → Smart)
 - **Esc**: Close dropdown or clear type input
@@ -231,7 +232,11 @@ Results:                          Preview:
 ```
 Pattern: error                Path: [src/______]
 ```
-Only searches within the `src/` directory.
+Only searches within the `src/` directory. You can use the **path dropdown** to quickly find directories or files:
+- Type a few characters to see matching paths
+- Use `Up`/`Down` to navigate suggestions
+- Press `Enter` to select a path and trigger search
+- Icons help distinguish between 📁 directories and 📄 files
 
 **5. Open files in your editor:**
 Press `Enter` on any result to open the file at that line in your default editor.
@@ -304,6 +309,7 @@ irg is built on a clean separation of concerns:
 - **main.go**: Entry point that validates ripgrep installation and launches the Bubble Tea program
 - **internal/search/ripgrep.go**: Wraps ripgrep with JSON output parsing and streaming result delivery
 - **internal/ui/model.go**: Bubble Tea Model implementing the TUI with debouncing, dual inputs, and split viewports
+- **internal/ui/paths.go**: PathProvider infrastructure for smart path autocomplete and filesystem scanning
 - **internal/highlight/**: Syntax highlighting engine with automatic language detection
 - **internal/editor/**: External editor integration supporting vim, VS Code, and more
 
@@ -323,8 +329,6 @@ irg is built on a clean separation of concerns:
 - [x] Syntax highlighting in preview (✅ Implemented)
 - [x] Editor integration with line number support (✅ Implemented)
 - [x] File type filtering (--type flag) (✅ Implemented)
-- [ ] Regex/literal mode toggle
-- [ ] Improved error handling
 
 ### v0.2.0 - User Experience  
 - [ ] Configuration file support for themes and settings
@@ -332,13 +336,6 @@ irg is built on a clean separation of concerns:
 - [ ] Custom key bindings
 - [ ] Toggle syntax highlighting on/off
 - [ ] Multiple theme support
-
-### v1.0.0 - Stable Release
-- [x] Basic test suite (✅ Implemented for highlight package)
-- [ ] Comprehensive test coverage for all packages
-- [ ] Performance optimizations
-- [ ] Plugin system
-- [ ] Advanced filtering options
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
