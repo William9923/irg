@@ -20,6 +20,10 @@ A terminal UI for interactive grep search with real-time results and live file p
 - **Multiple input fields**: Pattern, path scoping, and file type filtering
 - **Interactive navigation**: Keyboard-driven workflow with instant feedback
 
+## Why irg?
+
+Unlike the common fzf+ripgrep shell integration that requires scripting and external tools like `bat`, irg provides real-time search with live result updates, built-in syntax highlighting, interactive path autocomplete, and a purpose-built split-pane UI—all in a single binary that works out of the box.
+
 ## ✨ Features
 
 ### 🚀 Performance & Responsiveness
