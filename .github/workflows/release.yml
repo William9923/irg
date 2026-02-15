@@ -26,26 +26,37 @@ jobs:
       run: go test ./...
 
     - name: Build binaries
+      env:
+        VERSION: ${{ github.ref_name }}
+        COMMIT: ${{ github.sha }}
+        DATE: ${{ github.event.head_commit.timestamp }}
       run: |
-        # Build for multiple platforms
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/irg-linux-amd64 .
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/irg-linux-arm64 .
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/irg-darwin-amd64 .
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/irg-darwin-arm64 .
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/irg-windows-amd64.exe .
+        # Build ldflags with version info
+        LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}"
         
-        # Create archives
-        cd dist
-        tar -czf irg-linux-amd64.tar.gz irg-linux-amd64
-        tar -czf irg-linux-arm64.tar.gz irg-linux-arm64
-        tar -czf irg-darwin-amd64.tar.gz irg-darwin-amd64
-        tar -czf irg-darwin-arm64.tar.gz irg-darwin-arm64
-        zip irg-windows-amd64.zip irg-windows-amd64.exe
+        # Build for multiple platforms
+        GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o dist/irg .
+        tar -czf dist/irg_${VERSION}_linux_x86_64.tar.gz -C dist irg
+        
+        GOOS=linux GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o dist/irg .
+        tar -czf dist/irg_${VERSION}_linux_arm64.tar.gz -C dist irg
+        
+        GOOS=darwin GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o dist/irg .
+        tar -czf dist/irg_${VERSION}_darwin_x86_64.tar.gz -C dist irg
+        
+        GOOS=darwin GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o dist/irg .
+        tar -czf dist/irg_${VERSION}_darwin_arm64.tar.gz -C dist irg
+        
+        GOOS=windows GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o dist/irg.exe .
+        zip -j dist/irg_${VERSION}_windows_x86_64.zip dist/irg.exe
+        
+        # Clean up intermediate binaries
+        rm -f dist/irg dist/irg.exe
 
     - name: Generate checksums
       run: |
         cd dist
-        sha256sum *.tar.gz *.zip > checksums.txt
+        sha256sum irg_*.tar.gz irg_*.zip > checksums.txt 2>/dev/null || sha256sum irg_*.tar.gz > checksums.txt
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
